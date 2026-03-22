@@ -1,0 +1,595 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mountain View PW Removal — Quote & Call Tool</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; font-size: 16px; color: #1a1a18; background: #f5f4ef; line-height: 1.5; padding: 12px 12px 100px; max-width: 500px; margin: 0 auto; }
+
+.hdr { display: flex; align-items: center; justify-content: space-between; padding: 4px 0 12px; border-bottom: 0.5px solid #d3d1c7; margin-bottom: 16px; }
+.hdr-title { font-size: 14px; font-weight: 600; line-height: 1.3; }
+.hdr-title span { display: block; font-size: 11px; color: #888780; font-weight: 400; }
+.pill { font-size: 11px; font-weight: 600; padding: 4px 12px; border-radius: 20px; background: #faeeda; color: #854f0b; white-space: nowrap; }
+.pill.ready { background: #eaf3de; color: #3b6d11; }
+.pill.oos { background: #faece7; color: #993c1d; }
+
+.view { display: none; }
+.view.show { display: block; }
+
+.paste-label { font-size: 12px; font-weight: 600; color: #888780; text-transform: uppercase; letter-spacing: 0.07em; margin-bottom: 6px; }
+.paste-hint { font-size: 12px; color: #888780; margin-bottom: 8px; line-height: 1.5; }
+.paste-hint code { background: #fff; border: 0.5px solid #d3d1c7; border-radius: 4px; padding: 1px 5px; font-size: 11px; }
+textarea#zText { display: block; width: 100%; min-height: 170px; padding: 14px; border-radius: 12px; border: 2px solid #639922; background: #fff; font-family: 'Courier New', monospace; font-size: 13px; color: #1a1a18; resize: none; line-height: 1.7; }
+textarea#zText:focus { outline: none; border-color: #3b6d11; }
+.paste-row { display: flex; gap: 8px; margin-top: 12px; }
+.big-btn { display: block; width: 100%; padding: 17px; border-radius: 12px; border: none; background: #3b6d11; color: #fff; font-size: 16px; font-weight: 600; cursor: pointer; text-align: center; font-family: inherit; }
+.big-btn:active { background: #639922; }
+.reset-btn { flex-shrink: 0; padding: 17px 18px; border-radius: 12px; border: 1px solid #d3d1c7; background: #fff; font-size: 15px; color: #993c1d; cursor: pointer; font-family: inherit; font-weight: 600; white-space: nowrap; }
+.reset-btn:active { background: #faece7; }
+.ghost-btn { display: block; width: 100%; padding: 14px; border-radius: 12px; border: 1px solid #d3d1c7; background: #fff; font-size: 15px; color: #888780; cursor: pointer; margin-top: 8px; text-align: center; font-family: inherit; }
+.err { color: #993c1d; font-size: 13px; margin-top: 8px; }
+.ok  { color: #3b6d11; font-size: 13px; margin-top: 8px; }
+
+.hist-section { margin-top: 20px; }
+.hist-label { font-size: 12px; font-weight: 600; color: #888780; text-transform: uppercase; letter-spacing: 0.07em; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center; }
+.hist-clear { font-size: 11px; color: #993c1d; background: none; border: none; cursor: pointer; font-family: inherit; padding: 0; }
+.hist-empty { font-size: 13px; color: #888780; padding: 12px 0; text-align: center; }
+.hist-item { background: #fff; border: 0.5px solid #d3d1c7; border-radius: 10px; padding: 12px 14px; margin-bottom: 8px; cursor: pointer; display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; }
+.hist-item:active { background: #f0f8e8; }
+.hist-info { flex: 1; }
+.hist-name { font-size: 14px; font-weight: 600; margin-bottom: 3px; }
+.hist-meta { font-size: 12px; color: #888780; line-height: 1.5; }
+.hist-prices { font-size: 12px; color: #3b6d11; font-weight: 600; margin-top: 3px; }
+.hist-del { font-size: 18px; color: #d3d1c7; background: none; border: none; cursor: pointer; padding: 0 0 0 8px; flex-shrink: 0; line-height: 1; }
+.hist-del:active { color: #993c1d; }
+.hist-ts { font-size: 11px; color: #b4b2a9; margin-top: 2px; }
+
+.sec-lbl { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.07em; color: #888780; margin-bottom: 8px; }
+.source-badge { display: inline-block; font-size: 11px; font-weight: 600; padding: 3px 10px; border-radius: 20px; margin-bottom: 10px; }
+.source-badge.zapier { background: #faeeda; color: #854f0b; }
+.source-badge.wix    { background: #e6f1fb; color: #185fa5; }
+.lead-card { background: #fff; border-radius: 12px; padding: 14px; margin-bottom: 12px; border: 0.5px solid #d3d1c7; }
+.lr { display: flex; justify-content: space-between; align-items: baseline; padding: 6px 0; border-bottom: 0.5px solid #f1efe8; font-size: 14px; }
+.lr:last-child { border-bottom: none; }
+.lk { color: #888780; font-size: 13px; flex-shrink: 0; }
+.lv { font-weight: 600; text-align: right; margin-left: 8px; }
+.lv.warn { color: #ba7517; }
+
+.oos-banner { background: #faece7; border-left: 3px solid #993c1d; border-radius: 0 10px 10px 0; padding: 12px 14px; margin-bottom: 14px; font-size: 14px; color: #4a1b0c; font-weight: 600; }
+
+.q-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 14px; }
+.q-box { background: #fff; border-radius: 10px; padding: 12px; border: 0.5px solid #d3d1c7; }
+.ql { font-size: 11px; color: #888780; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 4px; }
+.qv { font-size: 20px; font-weight: 700; color: #3b6d11; }
+.qv.e { font-size: 15px; color: #888780; font-weight: 400; }
+.qv-sub { font-size: 11px; color: #888780; margin-top: 2px; }
+
+.field { margin-bottom: 10px; }
+.field label { display: block; font-size: 13px; font-weight: 600; color: #888780; margin-bottom: 5px; }
+.field input, .field select { display: block; width: 100%; padding: 13px 12px; border-radius: 10px; border: 1px solid #d3d1c7; background: #fff; font-size: 16px; color: #1a1a18; font-family: inherit; }
+.field input:focus, .field select:focus { outline: none; border-color: #639922; }
+.field input.af { border-color: #97c459; background: #f0f8e8; }
+.tier-badge { display: inline-block; font-size: 12px; font-weight: 600; padding: 3px 10px; border-radius: 20px; margin-top: 4px; }
+.tier-badge.reg { background: #eaf3de; color: #3b6d11; }
+.tier-badge.pre { background: #e6f1fb; color: #185fa5; }
+.tier-badge.unk { background: #f1efe8; color: #888780; }
+.tier-badge.oos { background: #faece7; color: #993c1d; }
+
+details summary { font-size: 14px; color: #888780; cursor: pointer; padding: 10px 0; list-style: none; }
+details summary::before { content: '\25B8 '; }
+details[open] summary::before { content: '\25BE '; }
+
+.ss { margin-bottom: 18px; }
+.ss h3 { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.07em; color: #888780; margin-bottom: 8px; padding-bottom: 4px; border-bottom: 0.5px solid #d3d1c7; }
+.say { background: #eaf3de; border-left: 3px solid #639922; border-radius: 0 10px 10px 0; padding: 14px; margin-bottom: 8px; font-size: 16px; line-height: 1.85; color: #1a1a18; }
+.val { background: #3b6d11; color: #fff; border-radius: 3px; padding: 2px 6px; font-weight: 600; font-size: 15px; }
+.blank { background: #d3d1c7; color: #5f5e5a; border-radius: 3px; padding: 2px 8px; font-size: 15px; font-style: italic; }
+.tip { background: #faeeda; border-left: 3px solid #ba7517; border-radius: 0 10px 10px 0; padding: 10px 14px; font-size: 13px; color: #412402; margin-bottom: 8px; }
+.tip strong { color: #854f0b; }
+.contact-banner { border-radius: 10px; padding: 10px 14px; font-size: 13px; font-weight: 600; margin-bottom: 14px; }
+.contact-banner.text-pref { background: #e6f1fb; color: #185fa5; }
+.contact-banner.call-pref { background: #eaf3de; color: #3b6d11; }
+
+.obj-btn { width: 100%; text-align: left; background: #fff; border: 1px solid #d3d1c7; border-radius: 10px; padding: 14px; font-size: 15px; font-weight: 600; color: #1a1a18; cursor: pointer; display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; font-family: inherit; }
+.obj-body { display: none; margin-bottom: 8px; }
+.obj-body.open { display: block; }
+
+.msg-hdr { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+.msg-hdr span { font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; color: #888780; }
+.msg-hdr span.green { color: #3b6d11; }
+.copy-btn { font-size: 12px; padding: 8px 18px; border-radius: 20px; border: 1px solid #d3d1c7; background: #fff; color: #3b6d11; cursor: pointer; font-family: inherit; font-weight: 600; }
+.copy-btn:active { background: #eaf3de; }
+.copy-btn.copied { background: #eaf3de; color: #3b6d11; border-color: #639922; }
+.msg-body { background: #fff; border-radius: 10px; padding: 14px; font-size: 14px; line-height: 1.7; white-space: pre-wrap; margin-bottom: 16px; border: 0.5px solid #d3d1c7; user-select: text; -webkit-user-select: text; }
+.msg-body.highlight { border-color: #97c459; background: #f8fcf2; }
+
+.crm-card { background: #fff; border-radius: 12px; padding: 14px; margin-bottom: 12px; border: 0.5px solid #d3d1c7; }
+.crm-row { display: flex; justify-content: space-between; align-items: baseline; padding: 8px 0; border-bottom: 0.5px solid #f1efe8; font-size: 14px; }
+.crm-row:last-child { border-bottom: none; }
+.ck { font-size: 13px; color: #888780; flex-shrink: 0; }
+.cv { font-weight: 600; text-align: right; max-width: 65%; word-break: break-word; margin-left: 8px; }
+.cv.warn { color: #ba7517; }
+
+.bnav { position: fixed; bottom: 0; left: 0; right: 0; background: #fff; border-top: 1px solid #d3d1c7; padding: 8px 12px 16px; display: none; gap: 6px; z-index: 100; }
+.bnav.show { display: flex; }
+.nb { flex: 1; padding: 10px 4px; border-radius: 10px; border: 1px solid #d3d1c7; background: #f5f4ef; font-size: 11px; font-weight: 600; color: #888780; cursor: pointer; line-height: 1.4; text-align: center; font-family: inherit; }
+.nb.on { background: #eaf3de; color: #3b6d11; border-color: #97c459; }
+
+.save-btn { display: block; width: 100%; padding: 14px; border-radius: 12px; border: 1px solid #97c459; background: #eaf3de; font-size: 15px; color: #3b6d11; cursor: pointer; margin-top: 8px; text-align: center; font-family: inherit; font-weight: 600; }
+.save-btn:active { background: #c0dd97; }
+</style>
+</head>
+<body>
+
+<div class="hdr">
+  <div class="hdr-title">Mountain View PW Removal <span>Quote &amp; Call Tool</span></div>
+  <div class="pill" id="pill">Ready to paste</div>
+</div>
+
+<!-- PASTE VIEW -->
+<div class="view show" id="v-paste">
+  <div class="paste-label">Paste lead text here</div>
+  <div class="paste-hint">Accepts both formats automatically:<br>
+    <code>Zapier</code> labeled format &nbsp;&#183;&nbsp; <code>Wix</code> WIX: pipe-separated
+  </div>
+  <textarea id="zText" placeholder="Zapier:&#10;Source: Facebook&#10;Name: Courtney Eafrati&#10;Phone: +16037231641&#10;Email: chamel899@gmail.com&#10;Zip: 03813&#10;Yard: Standard&#10;Dogs: 1&#10;Last Cleaned: 3-4 Months&#10;&#10;Wix:&#10;WIX: Daren Smith | +12075429711 | 04260 | Standard | 2 | 2-4 Months | Text"></textarea>
+  <div id="parseMsg"></div>
+  <div class="paste-row">
+    <button class="big-btn" onclick="doParse()">Generate Quote &amp; Script &#8594;</button>
+    <button class="reset-btn" onclick="resetPaste()">&#8635; Reset</button>
+  </div>
+  <button class="ghost-btn" onclick="showView('review')">Enter manually instead</button>
+  <div class="hist-section">
+    <div class="hist-label">Lead history <button class="hist-clear" onclick="clearHistory()">Clear all</button></div>
+    <div id="histList"></div>
+  </div>
+</div>
+
+<!-- REVIEW VIEW -->
+<div class="view" id="v-review">
+  <div class="sec-lbl">Review lead &amp; quote</div>
+  <div id="sourceBadge"></div>
+  <div id="oosBanner"></div>
+  <div class="lead-card" id="leadCard">&#8212;</div>
+  <div class="q-grid">
+    <div class="q-box"><div class="ql">One-time</div><div class="qv e" id="qOT">&#8212;</div></div>
+    <div class="q-box"><div class="ql">Initial (weekly)</div><div class="qv e" id="qIN">&#8212;</div></div>
+    <div class="q-box"><div class="ql">Monthly weekly</div><div class="qv e" id="qMO">&#8212;</div><div class="qv-sub" id="qMOsub"></div></div>
+    <div class="q-box"><div class="ql">Monthly bi-wkly</div><div class="qv e" id="qBW">&#8212;</div><div class="qv-sub" id="qBWsub"></div></div>
+  </div>
+  <div class="field">
+    <label>Service address <span style="font-weight:400">(capture on call if blank)</span></label>
+    <input id="iAddress" placeholder="Street address" oninput="refresh()">
+  </div>
+  <details>
+    <summary>Edit parsed fields</summary>
+    <div style="margin-top:10px">
+      <div class="field"><label>First name</label><input id="iName" oninput="refresh()"></div>
+      <div class="field"><label>Full name</label><input id="iFullName" oninput="refresh()"></div>
+      <div class="field"><label>Phone</label><input id="iPhone" oninput="refresh()"></div>
+      <div class="field"><label>Email</label><input id="iEmail" oninput="refresh()"></div>
+      <div class="field"><label>Contact preference</label>
+        <select id="iContact" onchange="refresh()">
+          <option value="">Unknown</option>
+          <option value="Call">Call</option>
+          <option value="Text">Text</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Zip code</label>
+        <input id="iZip" maxlength="5" oninput="refresh()">
+        <div class="tier-badge unk" id="tierBadge">&#8212;</div>
+      </div>
+      <div class="field"><label>Dogs</label>
+        <select id="iDogs" onchange="refresh()">
+          <option value="">Select</option>
+          <option value="1">1 dog</option><option value="2">2 dogs</option>
+          <option value="3">3 dogs</option><option value="4">4 dogs</option>
+        </select>
+      </div>
+      <div class="field"><label>Yard size</label>
+        <select id="iYard" onchange="refresh()">
+          <option value="standard">Standard</option>
+          <option value="small">Small (-10%)</option>
+          <option value="large">Large (+15%)</option>
+        </select>
+      </div>
+      <div class="field"><label>Last cleaned</label>
+        <select id="iBuildup" onchange="refresh()">
+          <option value="">Select</option>
+          <option value="oneweek">One week ago</option>
+          <option value="twoweeks">Two weeks ago</option>
+          <option value="threeweeks">Three weeks ago</option>
+          <option value="onemonth">About one month</option>
+          <option value="twomonths">About two months</option>
+          <option value="34months">3-4 months</option>
+          <option value="56months">5-6 months</option>
+          <option value="79months">7-9 months</option>
+          <option value="10months">10+ months</option>
+        </select>
+      </div>
+    </div>
+  </details>
+  <button class="big-btn" style="margin-top:16px" onclick="saveToHistory();showView('script');showPane('script')">Save &amp; Go to Call Script &#8594;</button>
+  <button class="ghost-btn" onclick="showView('paste')">&#8592; Back</button>
+</div>
+
+<!-- SCRIPT VIEW -->
+<div class="view" id="v-script">
+  <div id="pane-script">
+    <div id="contactBanner"></div>
+    <div class="ss"><h3>Open</h3>
+      <div class="say">"Hey <span id="s-n1" class="blank">Name</span>! This is Jesse with Mountain View Pet Waste Removal - just saw your request and calling right away. Got a second?"</div>
+    </div>
+    <div class="ss"><h3>Qualify + address</h3>
+      <div class="say">"You're over in <span id="s-t1" class="blank">Town</span> - looking for one-time or regular service?"<br><br><em style="color:#888780;font-size:13px">(after answer:)</em><br><br>"And what's the service address at your place?"</div>
+    </div>
+    <div class="ss"><h3>Anchor</h3>
+      <div class="say">"For <span id="s-d1" class="blank">X dogs</span> and <span id="s-b1" class="blank">X months</span> of buildup in <span id="s-t2" class="blank">Town</span>, a one-time cleanup runs <span id="s-ot1" class="blank">$___</span>."<br><br><em style="color:#888780;font-size:13px">(pause - let that land)</em><br><br>"We're running our Fresh Start spring offer right now - if you're open to it, it's actually a better deal."</div>
+    </div>
+    <div class="ss"><h3>Fresh Start reveal</h3>
+      <div class="say">"Start on weekly and that initial clean drops to <span id="s-in1" class="blank">$___</span> instead of <span id="s-ot2" class="blank">$___</span>. Monthly is <span id="s-mo1" class="blank">$___</span> - about <span id="s-ps1" class="blank">$___</span> a visit.<br><br>Plus your first regular visit is free, complimentary yard deodorizer, and a 30-day money-back guarantee."</div>
+      <div class="tip"><strong>Frame it:</strong> Recurring is the cheaper path to the same clean. Own it.</div>
+    </div>
+    <div class="ss"><h3>Close</h3>
+      <div class="say">"What days work best - morning or afternoon?"</div>
+      <div class="tip"><strong>Assumptive:</strong> Ask <em>when</em>, not <em>if</em>.</div>
+    </div>
+    <div class="ss"><h3>Recap &amp; hang up</h3>
+      <div class="say">"Deep clean at <span id="s-in2" class="blank">$___</span>, first weekly visit free, deodorizer included, 30-day guarantee. Sending a recap text now. See you soon, <span id="s-n2" class="blank">Name</span>!"</div>
+    </div>
+    <div class="ss"><h3>Objections</h3>
+      <button class="obj-btn" onclick="tog('o1')"><span>"Need to think about it"</span><span>&#9660;</span></button>
+      <div class="obj-body" id="o1"><div class="say">"What's giving you pause? I can usually clear it up."<br><em style="font-size:13px;color:#888780">(then:)</em><br>"Fresh Start is a spring promo - want me to pencil you in? No obligation."</div></div>
+      <button class="obj-btn" onclick="tog('o2')"><span>"Too expensive / price sensitive"</span><span>&#9660;</span></button>
+      <div class="obj-body" id="o2">
+        <div class="say">"I totally get it - that's actually why I want to show you the bi-weekly option too. Instead of <span id="s-mo2" class="blank">$___</span>/month for weekly, bi-weekly is <span id="s-bw1" class="blank">$___</span>/month - about <span id="s-bwps1" class="blank">$___</span> a visit. The yard still gets done twice a month and you're not dealing with it.<br><br>And that initial clean still drops from <span id="s-ot3" class="blank">$___</span> to <span id="s-in3" class="blank">$___</span> either way."</div>
+        <div class="tip"><strong>Downsell order:</strong> Weekly first, bi-weekly if they push back on price.</div>
+      </div>
+      <button class="obj-btn" onclick="tog('o3')"><span>"Just want one-time"</span><span>&#9660;</span></button>
+      <div class="obj-body" id="o3"><div class="say">"Absolutely - and we do those. With Fresh Start, signing up for weekly gets you that same deep clean for <span id="s-in4" class="blank">$___</span> instead of <span id="s-ot4" class="blank">$___</span>. Cancel after month one - you're just paying less for the exact same clean."</div></div>
+      <button class="obj-btn" onclick="tog('o4')"><span>"Do you service my area?"</span><span>&#9660;</span></button>
+      <div class="obj-body" id="o4"><div class="say">"You're in <span id="s-t3" class="blank">Town</span> - yes, we're out that way! Let me get you set up."</div></div>
+    </div>
+  </div>
+
+  <!-- TEXTS PANE -->
+  <div id="pane-texts" style="display:none">
+    <div class="tip" style="margin-bottom:14px"><strong>No answer?</strong> Send Msg 1 now, Msg 2 a few mins later, Msg 3 when they engage. <strong>Just got off a call?</strong> Send Msg 4 immediately as your recap.</div>
+    <div class="msg-hdr"><span>Message 1 &mdash; Intro</span><button class="copy-btn" onclick="copyText('m1',this)">Copy</button></div>
+    <div class="msg-body" id="m1">Generate quote first.</div>
+    <div class="msg-hdr"><span>Message 2 &mdash; Anchor</span><button class="copy-btn" onclick="copyText('m2',this)">Copy</button></div>
+    <div class="msg-body" id="m2">Generate quote first.</div>
+    <div class="msg-hdr"><span>Message 3 &mdash; Weekly Reveal</span><button class="copy-btn" onclick="copyText('m3',this)">Copy</button></div>
+    <div class="msg-body" id="m3">Generate quote first.</div>
+    <div class="msg-hdr"><span class="green">Message 4 &mdash; Post-Call Recap &#10003;</span><button class="copy-btn" onclick="copyText('m4',this)">Copy</button></div>
+    <div class="msg-body highlight" id="m4">Generate quote first.</div>
+    <div id="oosTextSection" style="display:none">
+      <div class="msg-hdr"><span>Out of Area Message</span><button class="copy-btn" onclick="copyText('mOOS',this)">Copy</button></div>
+      <div class="msg-body" id="mOOS"></div>
+    </div>
+  </div>
+
+  <!-- CRM PANE -->
+  <div id="pane-crm" style="display:none">
+    <div class="crm-card">
+      <div class="crm-row"><span class="ck">Name</span><span class="cv" id="c-name">&#8212;</span></div>
+      <div class="crm-row"><span class="ck">Phone</span><span class="cv" id="c-phone">&#8212;</span></div>
+      <div class="crm-row"><span class="ck">Email</span><span class="cv" id="c-email">&#8212;</span></div>
+      <div class="crm-row"><span class="ck">Contact pref.</span><span class="cv" id="c-contact">&#8212;</span></div>
+      <div class="crm-row"><span class="ck">Address</span><span class="cv warn" id="c-addr">Capture on call</span></div>
+      <div class="crm-row"><span class="ck">Zip</span><span class="cv" id="c-zip">&#8212;</span></div>
+      <div class="crm-row"><span class="ck">Town</span><span class="cv" id="c-town">&#8212;</span></div>
+      <div class="crm-row"><span class="ck">Dogs</span><span class="cv" id="c-dogs">&#8212;</span></div>
+      <div class="crm-row"><span class="ck">Yard</span><span class="cv" id="c-yard">&#8212;</span></div>
+      <div class="crm-row"><span class="ck">Last cleaned</span><span class="cv" id="c-bu">&#8212;</span></div>
+      <div class="crm-row"><span class="ck">One-time</span><span class="cv" id="c-ot">&#8212;</span></div>
+      <div class="crm-row"><span class="ck">Initial</span><span class="cv" id="c-in">&#8212;</span></div>
+      <div class="crm-row"><span class="ck">Monthly (weekly)</span><span class="cv" id="c-mo">&#8212;</span></div>
+      <div class="crm-row"><span class="ck">Monthly (bi-wkly)</span><span class="cv" id="c-bw">&#8212;</span></div>
+      <div class="crm-row"><span class="ck">Lead source</span><span class="cv" id="c-src">&#8212;</span></div>
+    </div>
+    <button class="big-btn" onclick="copyCRM(this)">Copy all CRM fields</button>
+    <button class="save-btn" id="saveBtn" onclick="saveToHistory()">&#9734; Save to history</button>
+    <button class="ghost-btn" style="margin-top:8px" onclick="newLead()">New lead &#8594;</button>
+  </div>
+</div>
+
+<!-- BOTTOM NAV -->
+<div class="bnav" id="bnav">
+  <button class="nb on" id="nb-script" onclick="showPane('script')">&#128222;<br>Script</button>
+  <button class="nb" id="nb-texts"  onclick="showPane('texts')">&#128172;<br>Texts</button>
+  <button class="nb" id="nb-crm"    onclick="showPane('crm')">&#128203;<br>CRM</button>
+  <button class="nb" id="nb-edit"   onclick="showView('review')">&#9998;<br>Edit</button>
+</div>
+
+<script>
+const ZT={'03813':'Center Conway, NH','03860':'North Conway, NH','04009':'Bridgton, ME','04010':'Brownfield, ME','04022':'Denmark, ME','04037':'Fryeburg, ME','04057':'Lovell, ME','03254':'Moultonborough, NH','03259':'North Sandwich, NH','03812':'Intervale, NH','03814':'Center Ossipee, NH','03818':'Conway, NH','03832':'Eaton Center, NH','03836':'Freedom, NH','03845':'Intervale, NH','03847':'Jackson, NH','03849':'Madison, NH','03864':'Ossipee, NH','03875':'Silver Lake, NH','03879':'Tamworth, NH','03882':'Effingham, NH','03883':'Mirror Lake, NH','03886':'Wonalancet, NH','03890':'West Ossipee, NH','04015':'Casco, ME','04020':'Cornish, ME','04029':'Limington, ME','04040':'Harrison, ME','04041':'Hiram, ME','04047':'Parsonsfield, ME','04051':'Lovell, ME','04055':'Naples, ME','04062':'Windham, ME','04068':'Porter, ME','04071':'Raymond, ME','04085':'Standish, ME','04091':'West Baldwin, ME'};
+const REG=new Set(['03813','03860','04009','04010','04022','04037','04057']);
+const PRE=new Set(['03254','03259','03812','03814','03818','03832','03836','03845','03847','03849','03864','03875','03879','03882','03883','03886','03890','04015','04020','04029','04040','04041','04047','04051','04055','04062','04068','04071','04085','04091']);
+const IP={'oneweek':[23,25,28,30],'twoweeks':[28,30,33,36],'threeweeks':[33,37,40,43],'onemonth':[56,62,68,73],'twomonths':[90,99,108,117],'34months':[144,158,172,187],'56months':[230,253,276,299],'79months':[368,405,441,478],'10months':[588,647,706,764]};
+const OP={'oneweek':[46.80,49.20,54.00,57.60],'twoweeks':[54.00,57.60,61.20,66.00],'threeweeks':[61.20,67.20,72.00,76.80],'onemonth':[96.00,104.40,112.80,121.20],'twomonths':[146.40,159.60,174.00,187.20],'34months':[228.00,249.60,270.00,291.60],'56months':[356.40,391.20,426.00,459.60],'79months':[564.00,619.20,674.40,728.40],'10months':[894.00,982.80,1071.60,1158.00]};
+const MR={weekly:[100,110,120,130],biweekly:[82.50,91.30,99,107.80]};
+const MP={weekly:[110,121,132,154],biweekly:[91.30,100.10,108.90,127.60]};
+const BL={'oneweek':'one week','twoweeks':'two weeks','threeweeks':'three weeks','onemonth':'about one month','twomonths':'about two months','34months':'3-4 months','56months':'5-6 months','79months':'7-9 months','10months':'10+ months'};
+const BD={'oneweek':'One week ago','twoweeks':'Two weeks ago','threeweeks':'Three weeks ago','onemonth':'About one month ago','twomonths':'About two months ago','34months':'3-4 months ago','56months':'5-6 months ago','79months':'7-9 months ago','10months':'10+ months ago'};
+const BM={
+  'oneweek':'oneweek','1week':'oneweek','oneweeks':'oneweek','1weeks':'oneweek',
+  'twoweeks':'twoweeks','2weeks':'twoweeks','twoweek':'twoweeks','2week':'twoweeks',
+  'threeweeks':'threeweeks','3weeks':'threeweeks','threeweek':'threeweeks','3week':'threeweeks',
+  'onemonth':'onemonth','1month':'onemonth','1months':'onemonth','onemonths':'onemonth',
+  'twomonths':'twomonths','2months':'twomonths','twomonth':'twomonths','2month':'twomonths',
+  '24months':'twomonths','2-4months':'twomonths','24month':'twomonths','2-4month':'twomonths',
+  '3-4months':'34months','3-4month':'34months','34months':'34months','34month':'34months',
+  '3to4months':'34months','3to4month':'34months',
+  '5-6months':'56months','5-6month':'56months','56months':'56months','56month':'56months',
+  '5to6months':'56months','5to6month':'56months',
+  '7-9months':'79months','7-9month':'79months','79months':'79months','79month':'79months',
+  '7to9months':'79months','7to9month':'79months',
+  '10+months':'10months','10+month':'10months','10months':'10months','10month':'10months',
+  'morethan10months':'10months','over10months':'10months'
+};
+
+let src='', leadsource='', currentLead={};
+function fmt(n){return '$'+n.toFixed(2);}
+
+function doParse(){
+  const raw=document.getElementById('zText').value.trim();
+  if(!raw){document.getElementById('parseMsg').innerHTML='<div class="err">Please paste the lead text first.</div>';return;}
+  let parsed={};
+  if(raw.toUpperCase().startsWith('WIX:')||(/\|/.test(raw)&&raw.split('\n').length<=2)){
+    parsed=parseWix(raw);leadsource='wix';
+  } else {parsed=parseZapier(raw);leadsource='zapier';}
+  applyParsed(parsed);
+  document.getElementById('parseMsg').innerHTML='<div class="ok">Parsed from '+(leadsource==='wix'?'Wix':'Zapier')+' - review below</div>';
+  refresh();showView('review');
+}
+
+function parseZapier(raw){
+  const d={};
+  raw.split('\n').forEach(l=>{const i=l.indexOf(':');if(i<0)return;d[l.slice(0,i).trim().toLowerCase()]=l.slice(i+1).trim();});
+  const full=d['name']||'';
+  const rawB=(d['last cleaned']||d['lastcleaned']||'').toLowerCase().replace(/[\s\u2013\u2014]/g,'').replace('–','-');
+  const rawY=(d['yard']||d['yard size']||'standard').toLowerCase();
+  return {fullName:full,firstName:full.split(' ')[0]||'',phone:d['phone']||'',email:d['email']||'',zip:d['zip']||d['zip code']||'',address:d['address']||'',dogs:Math.min(parseInt(d['dogs']||'1')||1,4),yard:rawY.includes('small')?'small':rawY.includes('large')?'large':'standard',buildup:BM[rawB]||'',source:d['source']||'Meta',contact:''};
+}
+
+function parseWix(raw){
+  const line=raw.replace(/^WIX:\s*/i,'').trim();
+  const p=line.split('|').map(s=>s.trim());
+  const full=p[0]||'';
+  const rawY=(p[3]||'standard').toLowerCase();
+  const rawB=(p[5]||'').toLowerCase().replace(/[\s\u2013\u2014]/g,'').replace('–','-');
+  const c=p[6]||'';
+  return {fullName:full,firstName:full.split(' ')[0]||'',phone:p[1]||'',email:'',zip:p[2]||'',address:'',dogs:Math.min(parseInt(p[4])||1,4),yard:rawY.includes('small')?'small':rawY.includes('large')?'large':'standard',buildup:BM[rawB]||'',source:'Wix Website',contact:c.toLowerCase().includes('text')?'Text':c.toLowerCase().includes('call')?'Call':c};
+}
+
+function applyParsed(p){
+  setF('iName',p.firstName||'');setF('iFullName',p.fullName||'');
+  setF('iPhone',p.phone||'');setF('iEmail',p.email||'');
+  setF('iZip',p.zip||'');setF('iAddress',p.address||'');
+  document.getElementById('iDogs').value=String(p.dogs||'');
+  document.getElementById('iYard').value=p.yard||'standard';
+  document.getElementById('iBuildup').value=p.buildup||'';
+  document.getElementById('iContact').value=p.contact||'';
+  src=p.source||'';
+}
+
+function setF(id,v){const el=document.getElementById(id);if(el){el.value=v;el.className=v?'af':'';}}
+function resetPaste(){document.getElementById('zText').value='';document.getElementById('parseMsg').textContent='';}
+
+function refresh(){
+  const name=document.getElementById('iName').value.trim();
+  const full=document.getElementById('iFullName').value.trim();
+  const phone=document.getElementById('iPhone').value.trim();
+  const email=document.getElementById('iEmail').value.trim();
+  const addr=document.getElementById('iAddress').value.trim();
+  const zip=document.getElementById('iZip').value.trim();
+  const dogs=parseInt(document.getElementById('iDogs').value)||0;
+  const yard=document.getElementById('iYard').value;
+  const bu=document.getElementById('iBuildup').value;
+  const contact=document.getElementById('iContact').value;
+  const town=ZT[zip]||'';
+  const isR=REG.has(zip),isP=PRE.has(zip);
+  const isOOS=zip.length===5&&!isR&&!isP;
+
+  const tb=document.getElementById('tierBadge');
+  if(isR){tb.textContent=town+' - Regular';tb.className='tier-badge reg';}
+  else if(isP){tb.textContent=town+' - Premium';tb.className='tier-badge pre';}
+  else if(isOOS){tb.textContent='Outside service area';tb.className='tier-badge oos';}
+  else{tb.textContent='--';tb.className='tier-badge unk';}
+
+  const oosBanner=document.getElementById('oosBanner');
+  if(isOOS&&zip.length===5){
+    const oosT=town||'this area';
+    oosBanner.innerHTML='<div class="oos-banner">&#9888; '+oosT+' is outside your current service area. See the out-of-area text in the Texts tab.</div>';
+  } else {oosBanner.innerHTML='';}
+
+  const mod=yard==='small'?0.90:yard==='large'?1.15:1.0;
+  const di=Math.min(Math.max(dogs-1,0),3);
+  let ot='',ini='',mo='',ps='',bw='',bwps='';
+  if(dogs>0&&bu&&(isR||isP)){
+    const mTab=isP?MP:MR;
+    const otN=OP[bu][di]*mod,inN=IP[bu][di]*mod;
+    const moN=mTab.weekly[di]*mod,bwN=mTab.biweekly[di]*mod;
+    ot=fmt(otN);ini=fmt(inN);mo=fmt(moN);ps=fmt(moN/4.33);bw=fmt(bwN);bwps=fmt(bwN/2.17);
+  }
+
+  const dt=town||(zip.length===5?'your area':'');
+  const dd=dogs===1?'1 dog':dogs>1?dogs+' dogs':'';
+  const yl=yard==='small'?'Small':yard==='large'?'Large':'Standard';
+
+  const sb=document.getElementById('sourceBadge');
+  if(leadsource==='wix') sb.innerHTML='<div class="source-badge wix">Wix Website</div>';
+  else if(leadsource==='zapier') sb.innerHTML='<div class="source-badge zapier">'+(src||'Meta')+'</div>';
+  else sb.innerHTML='';
+
+  setQV('qOT',ot);setQV('qIN',ini);
+  setQV('qMO',mo);document.getElementById('qMOsub').textContent=ps?ps+'/visit':'';
+  setQV('qBW',bw);document.getElementById('qBWsub').textContent=bwps?bwps+'/visit':'';
+
+  const cLabel=contact==='Text'?'Text preferred':contact==='Call'?'Call preferred':'--';
+  document.getElementById('leadCard').innerHTML=[
+    ['Name',full||name||'--'],['Phone',phone||'--'],['Town',dt||'--'],
+    ['Dogs',dd||'--'],['Yard',yl],['Last cleaned',BD[bu]||'--'],
+    ['Tier',isOOS?'Outside service area':isP?'Premium':isR?'Regular':'--'],
+    ['Contact',cLabel]
+  ].map(([k,v])=>'<div class="lr"><span class="lk">'+k+'</span><span class="lv">'+v+'</span></div>').join('');
+
+  const cb=document.getElementById('contactBanner');
+  if(contact==='Text') cb.innerHTML='<div class="contact-banner text-pref">This lead prefers TEXT - call first, text immediately if no answer</div>';
+  else if(contact==='Call') cb.innerHTML='<div class="contact-banner call-pref">This lead prefers to be called</div>';
+  else cb.innerHTML='';
+
+  const pill=document.getElementById('pill');
+  if(isOOS&&zip.length===5){pill.textContent='Outside service area';pill.className='pill oos';}
+  else if(ot&&name){pill.textContent='Ready to call';pill.className='pill ready';}
+  else{pill.textContent='Fill in info';pill.className='pill';}
+
+  sp('s-n1',name,'Name');sp('s-n2',name,'Name');
+  sp('s-t1',dt,'Town');sp('s-t2',dt,'Town');sp('s-t3',dt,'Town');
+  sp('s-d1',dd,'X dogs');sp('s-b1',BL[bu]||'','X months');
+  ['s-ot1','s-ot2','s-ot3','s-ot4'].forEach(id=>sp(id,ot,'$___'));
+  ['s-in1','s-in2','s-in3','s-in4'].forEach(id=>sp(id,ini,'$___'));
+  sp('s-mo1',mo,'$___');sp('s-ps1',ps,'$___');
+  sp('s-mo2',mo,'$___');sp('s-bw1',bw,'$___');sp('s-bwps1',bwps,'$___');
+
+  document.getElementById('c-name').textContent=full||'--';
+  document.getElementById('c-phone').textContent=phone||'--';
+  document.getElementById('c-email').textContent=email||'N/A';
+  document.getElementById('c-contact').textContent=contact||'--';
+  const ca=document.getElementById('c-addr');ca.textContent=addr||'Capture on call';ca.className=addr?'cv':'cv warn';
+  document.getElementById('c-zip').textContent=zip||'--';
+  document.getElementById('c-town').textContent=dt||'--';
+  document.getElementById('c-dogs').textContent=dd||'--';
+  document.getElementById('c-yard').textContent=yl;
+  document.getElementById('c-bu').textContent=BD[bu]||'--';
+  document.getElementById('c-ot').textContent=ot||'--';
+  document.getElementById('c-in').textContent=ini||'--';
+  document.getElementById('c-mo').textContent=mo?(mo+' ('+ps+'/visit)'):'--';
+  document.getElementById('c-bw').textContent=bw?(bw+' ('+bwps+'/visit)'):'--';
+  document.getElementById('c-src').textContent=src||(leadsource==='wix'?'Wix Website':'Meta');
+
+  const n=name||'[Name]',t=dt||'[Town]',bl=BL[bu]||'[buildup]',dg=dd||'[dogs]';
+  const OT=ot||'$[one-time]',IN=ini||'$[initial]',MO=mo||'$[monthly]',PS=ps||'$[per-visit]';
+
+  document.getElementById('m1').textContent='Hi '+n+', this is Jesse with Mountain View Pet Waste Removal, thanks for reaching out. Before I put your quote together I just wanted to know if you\'re looking for a one time cleanup or ongoing service at your home in '+t+'?';
+  document.getElementById('m2').textContent='For '+dg+' and about '+bl+' of buildup at your home in '+t+', a one-time cleanup would be '+OT+'.\n\nIf you\'d rather never deal with the cleanup again, we also offer weekly service. When someone starts weekly we heavily discount that first cleanup and include a few extra perks for new clients.\n\nIf you\'d like I can also send over what the weekly option would look like for your yard.';
+  document.getElementById('m3').textContent='If you start weekly service, the initial cleanup is heavily discounted to '+IN+'. Monthly service would be '+MO+', which works out to about '+PS+' per cleanup.\n\nWe are currently running our "Fresh Start" spring offer which includes:\n\u2022 The deeply discounted initial cleanup\n\u2022 Priority scheduling\n\u2022 Your first regular service week is FREE\n\u2022 A complimentary yard deodorizer treatment\n\u2022 30-day risk-free money back guarantee\n\nIt\'s the easiest way to get the yard completely reset and then never have to worry about it again.';
+  document.getElementById('m4').textContent='Hey '+n+', it was great speaking with you! Just wanted to send over a quick recap of everything we discussed.\n\nFor your home in '+t+', a standard one-time cleanup would be '+OT+'. However, if you move forward with our weekly service, that initial deep clean is heavily discounted to just '+IN+'.\n\nHere\'s what\'s included with our Fresh Start spring offer:\n\u2022 Initial deep clean discounted to '+IN+'\n\u2022 Monthly service: '+MO+' (about '+PS+' per visit)\n\u2022 Complimentary yard deodorizer treatment\n\u2022 First regular weekly visit FREE\n\u2022 30-day risk-free money back guarantee\n\nIt\'s the easiest way to get the yard completely reset and keep it that way all season. No stress, no mess - just a clean yard every week.\n\nFeel free to reach out with any questions - I\'m happy to help!\n\nJesse\nMountain View Pet Waste Removal';
+
+  const oosSection=document.getElementById('oosTextSection');
+  if(isOOS&&zip.length===5){
+    oosSection.style.display='block';
+    const oosName=name||'there';
+    const oosT=town||'your area';
+    document.getElementById('mOOS').textContent='Hi '+oosName+', this is Jesse with Mountain View Pet Waste Removal. Thank you so much for reaching out - I really appreciate your interest!\n\nUnfortunately, '+oosT+' is just outside our current service area. We are actively expanding, so I\'ve added your information to our list and will absolutely reach out as soon as we make it to your area.\n\nThanks again, and I hope we get the chance to serve you soon!';
+  } else {oosSection.style.display='none';}
+
+  currentLead={name:full||name,phone,email,contact,zip,town:dt,dogs:dd,yard:yl,buildup:BD[bu]||'',ot,ini,mo,bw,ps,bwps,source:src||(leadsource==='wix'?'Wix Website':'Meta'),ts:Date.now()};
+}
+
+function sp(id,v,fb){const el=document.getElementById(id);if(!el)return;if(v){el.textContent=v;el.className='val';}else{el.textContent=fb;el.className='blank';}}
+function setQV(id,v){const el=document.getElementById(id);if(!el)return;if(v){el.textContent=v;el.className='qv';}else{el.textContent='--';el.className='qv e';}}
+
+function getHistory(){try{return JSON.parse(localStorage.getItem('mv_leads')||'[]');}catch(e){return[];}}
+function saveHistory(h){localStorage.setItem('mv_leads',JSON.stringify(h));}
+
+function saveToHistory(){
+  if(!currentLead.name)return;
+  const h=getHistory();
+  const exists=h.findIndex(x=>x.name===currentLead.name&&x.phone===currentLead.phone);
+  if(exists>=0)h.splice(exists,1);
+  h.unshift(currentLead);
+  saveHistory(h);renderHistory();
+  const btn=document.getElementById('saveBtn');
+  if(btn){btn.textContent='Saved to history';setTimeout(()=>{btn.textContent='Save to history';},2000);}
+}
+
+function renderHistory(){
+  const h=getHistory();
+  const el=document.getElementById('histList');
+  if(!h.length){el.innerHTML='<div class="hist-empty">No leads saved yet</div>';return;}
+  el.innerHTML=h.map((l,i)=>{
+    const d=new Date(l.ts);
+    const ds=d.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})+' '+d.toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'});
+    const prices=l.ot?'One-time: '+l.ot+' | Initial: '+l.ini+' | Weekly: '+l.mo:'Outside service area';
+    const contact=l.contact?' | '+l.contact:'';
+    return '<div class="hist-item" onclick="loadHistory('+i+')">'
+      +'<div class="hist-info">'
+      +'<div class="hist-name">'+l.name+'</div>'
+      +'<div class="hist-meta">'+l.phone+contact+'<br>'+(l.town||'')+(l.dogs?' | '+l.dogs:'')+'</div>'
+      +'<div class="hist-prices">'+prices+'</div>'
+      +'<div class="hist-ts">'+ds+'</div>'
+      +'</div>'
+      +'<button class="hist-del" onclick="event.stopPropagation();deleteHistory('+i+')">&#x2715;</button>'
+      +'</div>';
+  }).join('');
+}
+
+function loadHistory(i){
+  const h=getHistory();const l=h[i];if(!l)return;
+  setF('iName',l.name.split(' ')[0]||'');setF('iFullName',l.name||'');
+  setF('iPhone',l.phone||'');setF('iEmail',l.email||'');
+  setF('iZip',l.zip||'');setF('iAddress',l.address||'');
+  document.getElementById('iContact').value=l.contact||'';
+  const dogMap={'1 dog':'1','2 dogs':'2','3 dogs':'3','4 dogs':'4'};
+  document.getElementById('iDogs').value=dogMap[l.dogs]||'';
+  const yardMap={'Small':'small','Large':'large','Standard':'standard'};
+  document.getElementById('iYard').value=yardMap[l.yard]||'standard';
+  const buRev=Object.entries(BD).find(([k,v])=>v===l.buildup);
+  document.getElementById('iBuildup').value=buRev?buRev[0]:'';
+  src=l.source||'';leadsource=l.source==='Wix Website'?'wix':'zapier';
+  refresh();showView('review');
+}
+
+function deleteHistory(i){const h=getHistory();h.splice(i,1);saveHistory(h);renderHistory();}
+function clearHistory(){if(!confirm('Clear all lead history?'))return;localStorage.removeItem('mv_leads');renderHistory();}
+
+function showView(name){
+  document.querySelectorAll('.view').forEach(v=>v.classList.remove('show'));
+  document.getElementById('v-'+name).classList.add('show');
+  document.getElementById('bnav').className=name==='script'?'bnav show':'bnav';
+  window.scrollTo(0,0);
+}
+function showPane(name){
+  ['script','texts','crm'].forEach(p=>{document.getElementById('pane-'+p).style.display='none';const nb=document.getElementById('nb-'+p);if(nb)nb.className='nb';});
+  document.getElementById('pane-'+name).style.display='block';
+  const nb=document.getElementById('nb-'+name);if(nb)nb.className='nb on';
+  window.scrollTo(0,0);
+}
+function tog(id){const b=document.getElementById(id);const o=b.classList.contains('open');document.querySelectorAll('.obj-body').forEach(x=>x.classList.remove('open'));if(!o)b.classList.add('open');}
+
+function copyText(id,btn){
+  const el=document.getElementById(id);
+  const text=el.textContent||el.innerText||'';
+  if(navigator.clipboard&&navigator.clipboard.writeText){
+    navigator.clipboard.writeText(text).then(()=>{
+      btn.textContent='Copied!';btn.classList.add('copied');
+      setTimeout(()=>{btn.textContent='Copy';btn.classList.remove('copied');},2000);
+    }).catch(()=>fallbackCopy(text,btn));
+  } else {fallbackCopy(text,btn);}
+}
+function fallbackCopy(text,btn){
+  const ta=document.createElement('textarea');
+  ta.value=text;ta.style.position='fixed';ta.style.opacity='0';
+  document.body.appendChild(ta);ta.focus();ta.select();
+  try{document.execCommand('copy');btn.textContent='Copied!';btn.classList.add('copied');setTimeout(()=>{btn.textContent='Copy';btn.classList.remove('copied');},2000);}
+  catch(e){btn.textContent='Long-press to copy';}
+  document.body.removeChild(ta);
+}
+function copyCRM(btn){
+  const rows=[['c-name','Name'],['c-phone','Phone'],['c-email','Email'],['c-contact','Contact Pref'],['c-addr','Address'],['c-zip','Zip'],['c-town','Town'],['c-dogs','Dogs'],['c-yard','Yard'],['c-bu','Last Cleaned'],['c-ot','One-Time'],['c-in','Initial'],['c-mo','Monthly (Weekly)'],['c-bw','Monthly (Bi-Weekly)'],['c-src','Source']];
+  const t=rows.map(([id,l])=>l+': '+document.getElementById(id).textContent).join('\n');
+  if(navigator.clipboard&&navigator.clipboard.writeText){
+    navigator.clipboard.writeText(t).then(()=>{btn.textContent='Copied!';setTimeout(()=>btn.textContent='Copy all CRM fields',2000);}).catch(()=>fallbackCopy(t,btn));
+  } else {fallbackCopy(t,btn);}
+}
+function newLead(){src='';leadsource='';currentLead={};showView('paste');}
+
+renderHistory();
+</script>
+</body>
+</html>
