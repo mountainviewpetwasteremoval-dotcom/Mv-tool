@@ -1,0 +1,1621 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#1a2e1a">
+<title>Mountain View PW — Field Tool</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-size:15px;color:#1a1a18;background:#f5f4ef;line-height:1.5;padding-bottom:80px;max-width:500px;margin:0 auto}
+
+/* ── HEADER ── */
+.hdr{display:flex;align-items:center;justify-content:space-between;padding:10px 14px 10px;background:#1a2e1a;position:sticky;top:0;z-index:90}
+.hdr-title{font-size:14px;font-weight:600;color:#b7e4c7;line-height:1.3}
+.hdr-title span{display:block;font-size:11px;color:#52796f;font-weight:400}
+.pill{font-size:11px;font-weight:600;padding:4px 12px;border-radius:20px;background:#faeeda;color:#854f0b;white-space:nowrap}
+.pill.ready{background:#eaf3de;color:#3b6d11}
+.pill.oos{background:#faece7;color:#993c1d}
+
+/* ── BOTTOM NAV ── */
+.bnav{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:500px;background:#1a2e1a;border-top:1px solid rgba(255,255,255,0.08);display:flex;z-index:100;padding-bottom:env(safe-area-inset-bottom)}
+.nb{flex:1;padding:10px 4px 8px;border:none;background:transparent;font-size:10px;font-weight:600;color:#52796f;cursor:pointer;line-height:1.4;text-align:center;font-family:inherit;letter-spacing:0.02em;text-transform:uppercase}
+.nb.on{color:#b7e4c7}
+.nb svg{display:block;margin:0 auto 3px;width:18px;height:18px}
+
+/* ── VIEWS ── */
+.view{display:none;padding:14px 14px 0;animation:fi 0.15s ease}
+.view.show{display:block}
+@keyframes fi{from{opacity:0;transform:translateY(3px)}to{opacity:1;transform:translateY(0)}}
+
+/* ── PANES (inside script view) ── */
+.pane{display:none}.pane.show{display:block}
+
+/* ── TYPOGRAPHY HELPERS ── */
+.sec-lbl{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.07em;color:#888780;margin-bottom:8px}
+.paste-label{font-size:12px;font-weight:600;color:#888780;text-transform:uppercase;letter-spacing:0.07em;margin-bottom:6px}
+.paste-hint{font-size:12px;color:#888780;margin-bottom:8px;line-height:1.5}
+.paste-hint code{background:#fff;border:0.5px solid #d3d1c7;border-radius:4px;padding:1px 5px;font-size:11px}
+.err{color:#993c1d;font-size:13px;margin-top:8px}
+.ok{color:#3b6d11;font-size:13px;margin-top:8px}
+
+/* ── BUTTONS ── */
+.big-btn{display:block;width:100%;padding:16px;border-radius:12px;border:none;background:#2d6a4f;color:#fff;font-size:16px;font-weight:600;cursor:pointer;text-align:center;font-family:inherit}
+.big-btn:active{background:#1a2e1a}
+.ghost-btn{display:block;width:100%;padding:13px;border-radius:12px;border:1px solid #d3d1c7;background:#fff;font-size:14px;color:#888780;cursor:pointer;margin-top:8px;text-align:center;font-family:inherit}
+.reset-btn{flex-shrink:0;padding:16px 16px;border-radius:12px;border:1px solid #d3d1c7;background:#fff;font-size:15px;color:#993c1d;cursor:pointer;font-family:inherit;font-weight:600}
+.save-btn{display:block;width:100%;padding:13px;border-radius:12px;border:1px solid #97c459;background:#eaf3de;font-size:14px;color:#3b6d11;cursor:pointer;margin-top:8px;text-align:center;font-family:inherit;font-weight:600}
+.copy-btn{font-size:12px;padding:7px 16px;border-radius:20px;border:1px solid #d3d1c7;background:#fff;color:#3b6d11;cursor:pointer;font-family:inherit;font-weight:600}
+.copy-btn.copied{background:#eaf3de;border-color:#639922}
+.btn-sm{font-size:12px;padding:6px 12px;border-radius:8px;border:1px solid #d3d1c7;background:#fff;color:#1a1a18;cursor:pointer;font-family:inherit;font-weight:500}
+.btn-sm:active{background:#f0f8e8}
+.btn-sm.green{background:#2d6a4f;border-color:#2d6a4f;color:#fff}
+.btn-sm.green:active{background:#1a2e1a}
+.btn-sm.red{border-color:#993c1d;color:#993c1d;background:#fff}
+.btn-danger{font-size:12px;padding:6px 12px;border-radius:8px;border:1px solid #993c1d;background:#fff;color:#993c1d;cursor:pointer;font-family:inherit}
+
+/* ── FORM FIELDS ── */
+.field{margin-bottom:10px}
+.field label{display:block;font-size:13px;font-weight:600;color:#888780;margin-bottom:5px}
+.field input,.field select,.field textarea{display:block;width:100%;padding:12px;border-radius:10px;border:1px solid #d3d1c7;background:#fff;font-size:15px;color:#1a1a18;font-family:inherit;-webkit-appearance:none;appearance:none}
+.field input:focus,.field select:focus,.field textarea:focus{outline:none;border-color:#639922}
+.field input.af{border-color:#97c459;background:#f0f8e8}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+
+/* ── CARDS & SURFACES ── */
+.card{background:#fff;border-radius:12px;padding:14px;margin-bottom:12px;border:0.5px solid #d3d1c7}
+.lr{display:flex;justify-content:space-between;align-items:baseline;padding:6px 0;border-bottom:0.5px solid #f1efe8;font-size:14px}
+.lr:last-child{border-bottom:none}
+.lk{color:#888780;font-size:13px;flex-shrink:0}
+.lv{font-weight:600;text-align:right;margin-left:8px}
+.lv.warn{color:#ba7517}
+
+/* ── QUOTE GRID ── */
+.q-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px}
+.q-box{background:#fff;border-radius:10px;padding:12px;border:0.5px solid #d3d1c7}
+.ql{font-size:11px;color:#888780;font-weight:600;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:4px}
+.qv{font-size:20px;font-weight:700;color:#2d6a4f}
+.qv.e{font-size:15px;color:#888780;font-weight:400}
+.qv-sub{font-size:11px;color:#888780;margin-top:2px}
+
+/* ── BADGES ── */
+.badge{display:inline-block;font-size:11px;font-weight:600;padding:3px 10px;border-radius:20px;white-space:nowrap}
+.badge-zapier{background:#faeeda;color:#854f0b}
+.badge-wix{background:#e6f1fb;color:#185fa5}
+.badge-manual{background:#f1efe8;color:#888780}
+.badge-reg{background:#eaf3de;color:#3b6d11}
+.badge-pre{background:#e6f1fb;color:#185fa5}
+.badge-oos{background:#faece7;color:#993c1d}
+.badge-unk{background:#f1efe8;color:#888780}
+.badge-a{background:#e6f1fb;color:#185fa5}
+.badge-b{background:#f0eeff;color:#5b3fd4}
+.badge-c{background:#eaf3de;color:#2d6a4f}
+.badge-converted{background:#eaf3de;color:#2d6a4f}
+.badge-lost{background:#f1efe8;color:#888780}
+.badge-nurture{background:#faeeda;color:#854f0b}
+.badge-active{background:#eaf3de;color:#2d6a4f}
+.badge-biweekly{background:#faeeda;color:#9a6800;font-size:10px;padding:2px 7px}
+
+/* ── SCRIPT STYLES ── */
+.ss{margin-bottom:18px}
+.ss h3{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.07em;color:#888780;margin-bottom:8px;padding-bottom:4px;border-bottom:0.5px solid #d3d1c7}
+.say{background:#eaf3de;border-left:3px solid #639922;border-radius:0 10px 10px 0;padding:14px;margin-bottom:8px;font-size:15px;line-height:1.85;color:#1a1a18}
+.val{background:#2d6a4f;color:#fff;border-radius:3px;padding:2px 6px;font-weight:600;font-size:14px}
+.blank{background:#d3d1c7;color:#5f5e5a;border-radius:3px;padding:2px 8px;font-size:14px;font-style:italic}
+.tip{background:#faeeda;border-left:3px solid #ba7517;border-radius:0 10px 10px 0;padding:10px 14px;font-size:13px;color:#412402;margin-bottom:8px}
+.tip strong{color:#854f0b}
+.obj-btn{width:100%;text-align:left;background:#fff;border:1px solid #d3d1c7;border-radius:10px;padding:13px;font-size:14px;font-weight:600;color:#1a1a18;cursor:pointer;display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;font-family:inherit}
+.obj-body{display:none;margin-bottom:8px}
+.obj-body.open{display:block}
+.contact-banner{border-radius:10px;padding:10px 14px;font-size:13px;font-weight:600;margin-bottom:14px}
+.contact-banner.text-pref{background:#e6f1fb;color:#185fa5}
+.contact-banner.call-pref{background:#eaf3de;color:#3b6d11}
+
+/* ── TEXTS PANE ── */
+.msg-hdr{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
+.msg-hdr span{font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:0.06em;color:#888780}
+.msg-hdr span.green{color:#3b6d11}
+.msg-body{background:#fff;border-radius:10px;padding:14px;font-size:14px;line-height:1.7;white-space:pre-wrap;margin-bottom:16px;border:0.5px solid #d3d1c7;user-select:text;-webkit-user-select:text}
+.msg-body.highlight{border-color:#97c459;background:#f8fcf2}
+
+/* ── CRM PANE ── */
+.crm-row{display:flex;justify-content:space-between;align-items:baseline;padding:8px 0;border-bottom:0.5px solid #f1efe8;font-size:14px}
+.crm-row:last-child{border-bottom:none}
+.ck{font-size:13px;color:#888780;flex-shrink:0}
+.cv{font-weight:600;text-align:right;max-width:65%;word-break:break-word;margin-left:8px}
+.cv.warn{color:#ba7517}
+
+/* ── OOS BANNER ── */
+.oos-banner{background:#faece7;border-left:3px solid #993c1d;border-radius:0 10px 10px 0;padding:12px 14px;margin-bottom:14px;font-size:14px;color:#4a1b0c;font-weight:600}
+
+/* ── PIPELINE / TRACKER ── */
+.stat-row{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:18px}
+.stat-card{background:#fff;border:0.5px solid #d3d1c7;border-radius:10px;padding:10px 8px;text-align:center}
+.stat-num{font-size:22px;font-weight:700;line-height:1}
+.stat-lbl{font-size:10px;color:#888780;margin-top:3px;font-weight:600;text-transform:uppercase;letter-spacing:0.04em}
+.stat-num.red{color:#993c1d}
+.stat-num.grn{color:#2d6a4f}
+.stat-num.blu{color:#185fa5}
+
+.section-lbl{font-size:10px;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;color:#888780;margin:0 0 8px;display:flex;align-items:center;gap:6px}
+.section-lbl .cnt{background:#eaf3de;color:#2d6a4f;border-radius:20px;padding:1px 7px;font-size:10px;font-weight:700}
+.section-lbl .cnt.red{background:#faece7;color:#993c1d}
+
+.lead-card{background:#fff;border:0.5px solid #d3d1c7;border-radius:12px;padding:14px 15px;margin-bottom:10px;position:relative;overflow:hidden}
+.lead-card::before{content:'';position:absolute;left:0;top:0;bottom:0;width:3px}
+.lead-card.overdue::before{background:#993c1d}
+.lead-card.today::before{background:#2d6a4f}
+.lead-card.upcoming::before{background:#d3d1c7}
+.card-top{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:7px}
+.lead-name{font-size:15px;font-weight:600}
+.lead-town{font-size:12px;color:#888780}
+.due-lbl{font-size:12px;font-weight:600;white-space:nowrap;margin-left:8px}
+.due-lbl.overdue{color:#993c1d}
+.due-lbl.today{color:#2d6a4f}
+.due-lbl.upcoming{color:#888780}
+.card-meta{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:9px;align-items:center}
+.meta-txt{font-size:12px;color:#888780}
+.card-note{font-size:12px;color:#4a6741;background:#f5f4ef;border-radius:8px;padding:7px 10px;margin-bottom:9px;font-style:italic;border:0.5px solid #d3d1c7}
+.card-btns{display:flex;gap:7px;flex-wrap:wrap}
+
+.filter-bar{display:flex;gap:7px;overflow-x:auto;padding-bottom:12px;scrollbar-width:none;-webkit-overflow-scrolling:touch}
+.filter-bar::-webkit-scrollbar{display:none}
+.filter-pill{padding:6px 14px;border-radius:20px;font-size:12px;font-weight:500;border:1px solid #d3d1c7;background:#fff;color:#888780;white-space:nowrap;cursor:pointer;font-family:inherit}
+.filter-pill.active{background:#1a2e1a;border-color:#1a2e1a;color:#b7e4c7;font-weight:600}
+
+/* ── MODAL ── */
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:200;align-items:flex-end;justify-content:center}
+.modal-overlay.open{display:flex}
+.modal{background:#fff;border-radius:14px 14px 0 0;width:100%;max-width:500px;max-height:92vh;overflow-y:auto;padding:18px 16px calc(18px + env(safe-area-inset-bottom));animation:su 0.2s ease}
+@keyframes su{from{transform:translateY(100%)}to{transform:translateY(0)}}
+.modal-handle{width:36px;height:4px;background:#d3d1c7;border-radius:2px;margin:0 auto 16px}
+.modal-title{font-size:16px;font-weight:600;margin-bottom:3px}
+.modal-sub{font-size:12px;color:#888780;margin-bottom:14px}
+
+/* ── COPY BOX ── */
+.copy-box{background:#f5f4ef;border:0.5px solid #d3d1c7;border-radius:10px;padding:14px;font-size:13px;line-height:1.75;color:#1a1a18;white-space:pre-wrap;word-break:break-word;margin:10px 0}
+.copy-hint{font-size:11px;color:#888780;margin-bottom:4px;font-family:'Courier New',monospace}
+
+/* ── LOG ── */
+.log-entry{padding:7px 0;border-bottom:0.5px solid #f1efe8;font-size:12px;color:#888780;display:flex;gap:10px}
+.log-date{font-family:'Courier New',monospace;font-size:11px;color:#b4b2a9;white-space:nowrap;flex-shrink:0}
+.divider{border:none;border-top:0.5px solid #d3d1c7;margin:14px 0}
+
+/* ── SEQUENCE ASSIGN BANNER ── */
+.seq-assign{background:#fff;border:1px solid #97c459;border-radius:12px;padding:14px;margin-top:14px}
+.seq-assign h4{font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:0.06em;color:#3b6d11;margin-bottom:10px}
+.seq-opts{display:grid;grid-template-columns:1fr 1fr 1fr;gap:7px;margin-bottom:10px}
+.seq-opt{padding:10px 6px;border-radius:10px;border:1px solid #d3d1c7;background:#fff;text-align:center;cursor:pointer;font-family:inherit}
+.seq-opt.sel{border-color:#2d6a4f;background:#eaf3de}
+.seq-opt .seq-key{font-size:18px;font-weight:700;color:#2d6a4f}
+.seq-opt .seq-desc{font-size:10px;color:#888780;margin-top:3px;line-height:1.3}
+.seq-opt.sel .seq-desc{color:#3b6d11}
+.price-row{display:flex;gap:7px;margin-bottom:10px}
+.price-opt{flex:1;padding:8px;border-radius:10px;border:1px solid #d3d1c7;background:#fff;text-align:center;cursor:pointer;font-family:inherit;font-size:12px;font-weight:600;color:#888780}
+.price-opt.sel{border-color:#ba7517;background:#faeeda;color:#854f0b}
+
+/* ── EMPTY ── */
+.empty{text-align:center;padding:50px 20px;color:#888780}
+.empty-icon{font-size:36px;margin-bottom:10px;opacity:0.5}
+
+/* ── PASTE AREA ── */
+textarea#zText{display:block;width:100%;min-height:150px;padding:14px;border-radius:12px;border:2px solid #639922;background:#fff;font-family:'Courier New',monospace;font-size:13px;color:#1a1a18;resize:none;line-height:1.7}
+textarea#zText:focus{outline:none;border-color:#2d6a4f}
+.paste-row{display:flex;gap:8px;margin-top:12px}
+</style>
+</head>
+<body>
+
+<div class="hdr">
+  <div class="hdr-title">Mountain View PW Removal <span>Field Tool</span></div>
+  <div style="display:flex;align-items:center;gap:8px">
+    <div class="pill" id="pill">Ready to paste</div>
+    <button id="sync-btn" onclick="syncFromSheet()" style="background:transparent;border:1px solid #52796f;border-radius:20px;color:#b7e4c7;font-size:11px;font-weight:600;padding:4px 12px;cursor:pointer;font-family:inherit">↻ Sync</button>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════
+  VIEW: PIPELINE (today queue)
+═════════════════════════════════════ -->
+<div class="view" id="v-pipeline">
+  <div class="stat-row" id="stats"></div>
+  <div id="queue-content"></div>
+</div>
+
+<!-- ════════════════════════════════════
+  VIEW: ALL LEADS
+═════════════════════════════════════ -->
+<div class="view" id="v-leads">
+  <div class="filter-bar" id="filter-bar">
+    <button class="filter-pill active" onclick="setFilter(this,'')">All</button>
+    <button class="filter-pill" onclick="setFilter(this,'active')">Active</button>
+    <button class="filter-pill" onclick="setFilter(this,'converted')">Converted</button>
+    <button class="filter-pill" onclick="setFilter(this,'nurture')">Nurture</button>
+    <button class="filter-pill" onclick="setFilter(this,'lost')">Lost</button>
+  </div>
+  <div id="all-content"></div>
+</div>
+
+<!-- ════════════════════════════════════
+  VIEW: QUOTE — PASTE
+═════════════════════════════════════ -->
+<div class="view show" id="v-paste">
+  <div class="paste-label">Paste lead text here</div>
+  <div class="paste-hint">Accepts both formats automatically:<br>
+    <code>Zapier</code> labeled format &nbsp;·&nbsp; <code>Wix</code> pipe-separated
+  </div>
+  <textarea id="zText" placeholder="Zapier:&#10;Source: Facebook&#10;Name: Courtney Eafrati&#10;Phone: +16037231641&#10;Email: chamel899@gmail.com&#10;Zip: 03813&#10;Yard: Standard&#10;Dogs: 1&#10;Last Cleaned: 3-4 Months&#10;&#10;Wix:&#10;WIX: Daren Smith | +12075429711 | 04260 | Standard | 2 | 2-4 Months | Text"></textarea>
+  <div id="parseMsg"></div>
+  <div class="paste-row">
+    <button class="big-btn" onclick="doParse()">Generate Quote & Script →</button>
+    <button class="reset-btn" onclick="resetPaste()">↺</button>
+  </div>
+  <button class="ghost-btn" onclick="goManual()">✎ In-Person / Manual Entry</button>
+</div>
+
+<!-- ════════════════════════════════════
+  VIEW: QUOTE — REVIEW
+═════════════════════════════════════ -->
+<div class="view" id="v-review">
+  <div class="sec-lbl">Review lead & quote</div>
+  <div id="sourceBadge" style="margin-bottom:8px"></div>
+  <div id="oosBanner"></div>
+  <div class="card" id="leadCard"></div>
+  <div class="q-grid">
+    <div class="q-box"><div class="ql">One-time</div><div class="qv e" id="qOT">—</div></div>
+    <div class="q-box"><div class="ql">Initial (weekly)</div><div class="qv e" id="qIN">—</div></div>
+    <div class="q-box"><div class="ql">Monthly weekly</div><div class="qv e" id="qMO">—</div><div class="qv-sub" id="qMOsub"></div></div>
+    <div class="q-box"><div class="ql">Monthly bi-wkly</div><div class="qv e" id="qBW">—</div><div class="qv-sub" id="qBWsub"></div></div>
+  </div>
+  <div class="field"><label>Service address <span style="font-weight:400">(capture on call)</span></label>
+    <input id="iAddress" placeholder="Street address" oninput="refresh()">
+  </div>
+  <div class="field"><label>First name</label><input id="iName" oninput="refresh()"></div>
+  <div class="field"><label>Full name</label><input id="iFullName" oninput="refresh()"></div>
+  <div class="field"><label>Phone</label><input id="iPhone" oninput="refresh()"></div>
+  <div class="field"><label>Email</label><input id="iEmail" oninput="refresh()"></div>
+  <div class="field"><label>Contact preference</label>
+    <select id="iContact" onchange="refresh()">
+      <option value="">Unknown</option>
+      <option value="Call">Call</option>
+      <option value="Text">Text</option>
+    </select>
+  </div>
+  <div class="field">
+    <label>Zip code</label>
+    <input id="iZip" maxlength="5" oninput="refresh()">
+    <div class="badge badge-unk" id="tierBadge" style="margin-top:5px">—</div>
+  </div>
+  <div class="field"><label>Dogs</label>
+    <select id="iDogs" onchange="refresh()">
+      <option value="">Select</option>
+      <option value="1">1 dog</option><option value="2">2 dogs</option>
+      <option value="3">3 dogs</option><option value="4">4 dogs</option>
+    </select>
+  </div>
+  <div class="field"><label>Yard size</label>
+    <select id="iYard" onchange="refresh()">
+      <option value="standard">Standard</option>
+      <option value="small">Small (-10%)</option>
+      <option value="large">Large (+15%)</option>
+    </select>
+  </div>
+  <div class="field"><label>Last cleaned</label>
+    <select id="iBuildup" onchange="refresh()">
+      <option value="">Select</option>
+      <option value="oneweek">One week ago</option>
+      <option value="twoweeks">Two weeks ago</option>
+      <option value="threeweeks">Three weeks ago</option>
+      <option value="onemonth">About one month</option>
+      <option value="twomonths">About two months</option>
+      <option value="34months">3-4 months</option>
+      <option value="56months">5-6 months</option>
+      <option value="79months">7-9 months</option>
+      <option value="10months">10+ months</option>
+    </select>
+  </div>
+  <button class="big-btn" style="margin-top:6px" onclick="goToScript()">Save & Go to Call Script →</button>
+  <button class="ghost-btn" style="border-color:#97c459;color:#3b6d11;background:#eaf3de;margin-top:8px" onclick="saveUnassigned()">Save to tracker (assign sequence later)</button>
+  <button class="ghost-btn" onclick="showView('paste')">← Back</button>
+</div>
+
+<!-- ════════════════════════════════════
+  VIEW: SCRIPT / TEXTS / CRM
+═════════════════════════════════════ -->
+<div class="view" id="v-script">
+
+  <!-- inner sub-nav -->
+  <div style="display:flex;gap:6px;margin-bottom:14px;overflow-x:auto;padding-bottom:4px">
+    <button class="filter-pill active" id="sp-script" onclick="showPane('script')">📞 Script</button>
+    <button class="filter-pill" id="sp-texts" onclick="showPane('texts')">💬 Texts</button>
+    <button class="filter-pill" id="sp-crm" onclick="showPane('crm')">📋 CRM</button>
+    <button class="filter-pill" id="sp-edit" onclick="showView('review')">✎ Edit</button>
+  </div>
+
+  <!-- SCRIPT PANE -->
+  <div class="pane show" id="pane-script">
+    <div id="contactBanner"></div>
+
+    <div class="tip" style="margin-bottom:14px">
+      <strong>BEFORE YOU DIAL</strong> — You have the quote ready. Call within 2 minutes.
+    </div>
+
+    <div class="ss"><h3>Opening</h3>
+      <div class="say">"Hi, is this <span id="s-n1" class="blank">Name</span>? Hey, this is Jesse over at Mountain View Pet Waste Removal — I just got your request come through and wanted to give you a quick call. Did I catch you at an okay time?"</div>
+    </div>
+
+    <div class="ss"><h3>Transition</h3>
+      <div class="say">"Perfect. So I saw you've got <span id="s-d1" class="blank">X dogs</span> over in <span id="s-t1" class="blank">Town</span> — sounds like you're ready to get the yard sorted out. Is this just winter buildup you're dealing with, or has it been a little longer than that?"</div>
+      <div class="tip"><em>If a few months:</em> "Yeah, that's exactly what we're seeing all over right now. Spring hits and it's a lot."<br><br><em>If longer:</em> "Okay, good to know — that actually works in your favor with what I've got going on right now."</div>
+    </div>
+
+    <div class="ss"><h3>The Anchor</h3>
+      <div class="say">"So let me tell you what I've got for you. First — if you just needed a one-time spring cleanup, no recurring service, that would run you <span id="s-ot1" class="blank">$___</span>. That's us coming out, clearing out everything that's built up, leaving the yard completely clean. Done."</div>
+      <div class="tip"><strong>Pause. Let it land.</strong></div>
+    </div>
+
+    <div class="ss"><h3>The Offer</h3>
+      <div class="say">"But here's what I'm running right now through the spring. If you want to keep it clean going forward — we come every week, you never think about it again — I can knock that initial cleanup down to <span id="s-in1" class="blank">$___</span>. Same full cleanup, just discounted because you're starting recurring service.<br><br>Your first regular weekly visit after the cleanup is on me, and we'll throw in a complimentary yard deodorizer when we're out there.<br><br>Weekly service after that is <span id="s-mo1" class="blank">$___</span>/month. And it comes with a 30-day guarantee — if you're not happy for any reason in that first month, I'll refund that month of service. No hassle."</div>
+      <div class="tip"><strong>Pause. Don't fill the silence.</strong></div>
+    </div>
+
+    <div class="ss"><h3>Soft Close</h3>
+      <div class="say">"Does that sound like something that would work for you?"</div>
+    </div>
+
+    <div class="ss"><h3>Objections</h3>
+      <button class="obj-btn" onclick="tog('o1')">"Need to talk to my spouse" <span>▾</span></button>
+      <div class="obj-body" id="o1">
+        <div class="say">"Totally get it. Can I ask — is it more a question of whether to do it, or more about the timing and the price?"</div>
+        <div class="tip"><em>If just checking in:</em> "That's fair. I can hold this Spring Special pricing for you for 48 hours. After that I can't guarantee the discounted cleanup rate. Want me to shoot you a text with everything so you've got it in front of you when you chat with them?"<br><br><em>If not sure they need it:</em> "That's fair too. The guarantee means there's really no risk in trying it — worst case, it cost you nothing and your yard got cleaned."</div>
+        <div class="tip" style="background:#eaf3de;border-color:#639922"><strong>After hanging up:</strong> Start Sequence C in the tracker.</div>
+      </div>
+
+      <button class="obj-btn" onclick="tog('o2')">"Too expensive / price sensitive" <span>▾</span></button>
+      <div class="obj-body" id="o2">
+        <div class="say">"I hear you. If weekly feels like too much right now, I do offer bi-weekly service as well — every other week, <span id="s-bw1" class="blank">$___</span>/month. Same setup, just a little less frequent. Want me to run that number for you?"</div>
+        <div class="tip"><strong>Downsell order:</strong> Weekly first, bi-weekly if they push back on price.</div>
+      </div>
+
+      <button class="obj-btn" onclick="tog('o3')">"I'll think about it" <span>▾</span></button>
+      <div class="obj-body" id="o3">
+        <div class="say">"No problem. I'll shoot you a text with everything. Just so you know, the Spring Special pricing is only good for 48 hours — after that the cleanup goes back to full price. I'll follow up in a day or two."</div>
+        <div class="tip" style="background:#eaf3de;border-color:#639922"><strong>After hanging up:</strong> Start Sequence B in the tracker immediately.</div>
+      </div>
+
+      <button class="obj-btn" onclick="tog('o4')">"Do you service my area?" <span>▾</span></button>
+      <div class="obj-body" id="o4">
+        <div class="say">"You're in <span id="s-t3" class="blank">Town</span> — yes, we're out that way! Let me get you set up."</div>
+      </div>
+
+      <button class="obj-btn" onclick="tog('o5')">"How does billing work?" <span>▾</span></button>
+      <div class="obj-body" id="o5">
+        <div class="say">"I bill the cleanup after we do the job — so you don't pay until it's done. Then I pre-bill monthly service on the first of the month. If we're starting mid-month, I'll pro-rate that first billing so you're only paying for the days we're serving you."</div>
+      </div>
+    </div>
+
+    <div class="ss"><h3>The Close</h3>
+      <div class="say">"So — you want to get you on the schedule?"</div>
+    </div>
+
+        <!-- SEQUENCE ASSIGNMENT -->
+    <div class="seq-assign" id="seq-assign">
+      <h4>📌 Assign to follow-up sequence</h4>
+      <div class="seq-opts">
+        <div class="seq-opt" id="so-A" onclick="selSeq('A')">
+          <div class="seq-key">A</div>
+          <div class="seq-desc">No answer / didn't pick up</div>
+        </div>
+        <div class="seq-opt" id="so-B" onclick="selSeq('B')">
+          <div class="seq-key">B</div>
+          <div class="seq-desc">"I'll think about it"</div>
+        </div>
+        <div class="seq-opt" id="so-C" onclick="selSeq('C')">
+          <div class="seq-key">C</div>
+          <div class="seq-desc">"Talk to spouse"</div>
+        </div>
+      </div>
+      <div style="font-size:12px;color:#888780;margin-bottom:8px;font-weight:600;text-transform:uppercase;letter-spacing:0.05em">Price sensitive?</div>
+      <div class="price-row">
+        <button class="price-opt" id="po-no" onclick="selPrice('no')">No</button>
+        <button class="price-opt" id="po-yes" onclick="selPrice('yes')">Yes — mention bi-weekly</button>
+      </div>
+      <button class="big-btn" onclick="saveLeadToTracker()" id="save-to-tracker-btn" style="opacity:0.4">Add to follow-up tracker →</button>
+      <button class="ghost-btn" style="margin-top:8px;border-color:#97c459;color:#3b6d11;background:#eaf3de" onclick="saveAsConverted()">✓ Closed on call — save as Converted</button>
+      <div id="save-seq-msg" style="font-size:12px;color:#3b6d11;margin-top:6px;text-align:center"></div>
+    </div>
+  </div>
+
+  <!-- TEXTS PANE -->
+  <div class="pane" id="pane-texts">
+    <div class="tip" style="margin-bottom:14px"><strong>No answer?</strong> Send Msg 1 now, Msg 2 a few mins later, Msg 3 when they engage. <strong>Just got off a call?</strong> Send Msg 4 as your recap.</div>
+    <div class="msg-hdr"><span>Message 1 — Intro</span><button class="copy-btn" onclick="copyMsg('m1',this)">Copy</button></div>
+    <div class="msg-body" id="m1">Generate quote first.</div>
+    <div class="msg-hdr"><span>Message 2 — Anchor</span><button class="copy-btn" onclick="copyMsg('m2',this)">Copy</button></div>
+    <div class="msg-body" id="m2">Generate quote first.</div>
+    <div class="msg-hdr"><span>Message 3 — Weekly Reveal</span><button class="copy-btn" onclick="copyMsg('m3',this)">Copy</button></div>
+    <div class="msg-body" id="m3">Generate quote first.</div>
+    <div class="msg-hdr"><span class="green">Message 4 — Post-Call Recap ✓</span><button class="copy-btn" onclick="copyMsg('m4',this)">Copy</button></div>
+    <div class="msg-body highlight" id="m4">Generate quote first.</div>
+    <div id="oosTextSection" style="display:none">
+      <div class="msg-hdr"><span>Out of Area</span><button class="copy-btn" onclick="copyMsg('mOOS',this)">Copy</button></div>
+      <div class="msg-body" id="mOOS"></div>
+    </div>
+  </div>
+
+  <!-- CRM PANE -->
+  <div class="pane" id="pane-crm">
+    <div class="card">
+      <div class="crm-row"><span class="ck">Name</span><span class="cv" id="c-name">—</span></div>
+      <div class="crm-row"><span class="ck">Phone</span><span class="cv" id="c-phone">—</span></div>
+      <div class="crm-row"><span class="ck">Email</span><span class="cv" id="c-email">—</span></div>
+      <div class="crm-row"><span class="ck">Contact pref.</span><span class="cv" id="c-contact">—</span></div>
+      <div class="crm-row"><span class="ck">Address</span><span class="cv warn" id="c-addr">Capture on call</span></div>
+      <div class="crm-row"><span class="ck">Zip</span><span class="cv" id="c-zip">—</span></div>
+      <div class="crm-row"><span class="ck">Town</span><span class="cv" id="c-town">—</span></div>
+      <div class="crm-row"><span class="ck">Dogs</span><span class="cv" id="c-dogs">—</span></div>
+      <div class="crm-row"><span class="ck">Yard</span><span class="cv" id="c-yard">—</span></div>
+      <div class="crm-row"><span class="ck">Last cleaned</span><span class="cv" id="c-bu">—</span></div>
+      <div class="crm-row"><span class="ck">One-time</span><span class="cv" id="c-ot">—</span></div>
+      <div class="crm-row"><span class="ck">Initial</span><span class="cv" id="c-in">—</span></div>
+      <div class="crm-row"><span class="ck">Monthly (weekly)</span><span class="cv" id="c-mo">—</span></div>
+      <div class="crm-row"><span class="ck">Monthly (bi-wkly)</span><span class="cv" id="c-bw">—</span></div>
+      <div class="crm-row"><span class="ck">Source</span><span class="cv" id="c-src">—</span></div>
+    </div>
+    <button class="big-btn" onclick="copyCRM(this)">Copy all CRM fields</button>
+    <button class="ghost-btn" style="margin-top:8px" onclick="newLead()">New lead →</button>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════
+  BOTTOM NAV
+═════════════════════════════════════ -->
+<div class="bnav">
+  <button class="nb" id="nb-pipeline" onclick="switchTab('pipeline')">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+    Today
+  </button>
+  <button class="nb" id="nb-leads" onclick="switchTab('leads')">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><circle cx="3" cy="6" r="1"/><circle cx="3" cy="12" r="1"/><circle cx="3" cy="18" r="1"/></svg>
+    All Leads
+  </button>
+  <button class="nb on" id="nb-quote" onclick="switchTab('quote')">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+    Quote
+  </button>
+</div>
+
+<!-- ════ TOUCH MODAL ════ -->
+<div class="modal-overlay" id="modal-touch" onclick="handleOverlay(event,'modal-touch')">
+  <div class="modal" onclick="event.stopPropagation()">
+    <div class="modal-handle"></div>
+    <div id="touch-content"></div>
+  </div>
+</div>
+
+<!-- ════ EDIT MODAL ════ -->
+<div class="modal-overlay" id="modal-edit" onclick="handleOverlay(event,'modal-edit')">
+  <div class="modal" onclick="event.stopPropagation()">
+    <div class="modal-handle"></div>
+    <div id="edit-content"></div>
+  </div>
+</div>
+
+<script>
+// ══════════════════════════════════════════
+// PRICING DATA (from original quote tool)
+// ══════════════════════════════════════════
+const ZT={'03813':'Center Conway, NH','03860':'North Conway, NH','04009':'Bridgton, ME','04010':'Brownfield, ME','04022':'Denmark, ME','04037':'Fryeburg, ME','04057':'Lovell, ME','03254':'Moultonborough, NH','03259':'North Sandwich, NH','03812':'Intervale, NH','03814':'Center Ossipee, NH','03818':'Conway, NH','03832':'Eaton Center, NH','03836':'Freedom, NH','03845':'Intervale, NH','03847':'Jackson, NH','03849':'Madison, NH','03864':'Ossipee, NH','03875':'Silver Lake, NH','03879':'Tamworth, NH','03882':'Effingham, NH','03883':'Mirror Lake, NH','03886':'Wonalancet, NH','03890':'West Ossipee, NH','04015':'Casco, ME','04020':'Cornish, ME','04029':'Limington, ME','04040':'Harrison, ME','04041':'Hiram, ME','04047':'Parsonsfield, ME','04051':'Lovell, ME','04055':'Naples, ME','04062':'Windham, ME','04068':'Porter, ME','04071':'Raymond, ME','04085':'Standish, ME','04091':'West Baldwin, ME'};
+const REG=new Set(['03813','03860','04009','04010','04022','04037','04057']);
+const PRE=new Set(['03254','03259','03812','03814','03818','03832','03836','03845','03847','03849','03864','03875','03879','03882','03883','03886','03890','04015','04020','04029','04040','04041','04047','04051','04055','04062','04068','04071','04085','04091']);
+const IP={'oneweek':[23,25,28,30],'twoweeks':[28,30,33,36],'threeweeks':[33,37,40,43],'onemonth':[56,62,68,73],'twomonths':[90,99,108,117],'34months':[144,158,172,187],'56months':[230,253,276,299],'79months':[368,405,441,478],'10months':[588,647,706,764]};
+const OP={'oneweek':[46.80,49.20,54.00,57.60],'twoweeks':[54.00,57.60,61.20,66.00],'threeweeks':[61.20,67.20,72.00,76.80],'onemonth':[96.00,104.40,112.80,121.20],'twomonths':[146.40,159.60,174.00,187.20],'34months':[228.00,249.60,270.00,291.60],'56months':[356.40,391.20,426.00,459.60],'79months':[564.00,619.20,674.40,728.40],'10months':[894.00,982.80,1071.60,1158.00]};
+const MR={weekly:[100,110,120,130],biweekly:[82.50,91.30,99,107.80]};
+const MP={weekly:[110,121,132,154],biweekly:[91.30,100.10,108.90,127.60]};
+const BL={'oneweek':'one week','twoweeks':'two weeks','threeweeks':'three weeks','onemonth':'about one month','twomonths':'about two months','34months':'3-4 months','56months':'5-6 months','79months':'7-9 months','10months':'10+ months'};
+const BD={'oneweek':'One week ago','twoweeks':'Two weeks ago','threeweeks':'Three weeks ago','onemonth':'About one month ago','twomonths':'About two months ago','34months':'3-4 months ago','56months':'5-6 months ago','79months':'7-9 months ago','10months':'10+ months ago'};
+const BM={'oneweek':'oneweek','1week':'oneweek','oneweeks':'oneweek','1weeks':'oneweek','twoweeks':'twoweeks','2weeks':'twoweeks','twoweek':'twoweeks','2week':'twoweeks','threeweeks':'threeweeks','3weeks':'threeweeks','threeweek':'threeweeks','3week':'threeweeks','onemonth':'onemonth','1month':'onemonth','1months':'onemonth','onemonths':'onemonth','twomonths':'twomonths','2months':'twomonths','twomonth':'twomonths','2month':'twomonths','24months':'twomonths','2-4months':'twomonths','24month':'twomonths','2-4month':'twomonths','3-4months':'34months','3-4month':'34months','34months':'34months','34month':'34months','3to4months':'34months','3to4month':'34months','5-6months':'56months','5-6month':'56months','56months':'56months','56month':'56months','5to6months':'56months','5to6month':'56months','7-9months':'79months','7-9month':'79months','79months':'79months','79month':'79months','7to9months':'79months','7to9month':'79months','10+months':'10months','10+month':'10months','10months':'10months','10month':'10months','morethan10months':'10months','over10months':'10months'};
+
+// ══════════════════════════════════════════
+// FOLLOW-UP SEQUENCES
+// ══════════════════════════════════════════
+const SCHED=[0,1,3,6,13,29];
+const SEQ_LABELS={A:'No answer',B:'Think about it',C:'Talk to spouse'};
+const SUBJECTS={
+  A:['First touch','Value reminder','Bullet recap','Soft urgency','Outcome reframe','Warm breakup'],
+  B:['Confirm + summary','Social proof','Name objection','YES CTA','Yard as hero','Warm breakup'],
+  C:['Shareable summary','Partnership + guarantee','Invite partner','Hold our spot','Partner concern','Final close']
+};
+const TEXTS={
+  A:[
+    l=>`Hi ${l.fname}, this is Jesse with Mountain View Pet Waste Removal. Just tried giving you a call — no worries if you missed it.
+
+I put together a quote for your yard. If you just needed a one-time cleanup it's ${l.ot||'[see quote]'}, but I'm running a spring offer right now that brings that down to ${l.ini||'[see quote]'} if you want to keep the yard clean going forward.
+
+First weekly visit is on me, complimentary yard deodorizer included, and a 30-day guarantee on your first month. Call me back at 207-256-1092 or just reply here. 🐾`,
+
+    l=>`Hey ${l.fname}, Jesse from Mountain View following up.
+
+That spring offer I mentioned — the discounted cleanup at ${l.ini||'[see quote]'} — is only good for 48 hours. After that the one-time rate of ${l.ot||'[see quote]'} applies.
+
+If you want to lock it in, just reply here and I'll get you on the schedule.`,
+
+    l=>`Hi ${l.fname}, Jesse again from Mountain View.
+
+Quick summary of what's on the table:
+🐾 One-time cleanup: ${l.ot||'[see quote]'}
+🐾 Discounted cleanup + weekly service: ${l.ini||'[see quote]'} to start, then ${l.mo||'[see quote]'}/month
+🐾 First weekly visit free
+🐾 Complimentary yard deodorizer
+🐾 30-day money-back guarantee on your first month
+${l.biweekly==='yes'?'\n🐾 Bi-weekly option also available: '+( l.bw||'[see quote]')+'/month\n':''}
+Reply here if you want to move forward or have any questions. 😊`,
+
+    l=>`Hey ${l.fname}, Jesse from Mountain View.
+
+The Spring Special pricing expires soon — I just want to make sure you have the chance to use it if it makes sense for you.
+
+If weekly feels like too much, I also do bi-weekly at ${l.bw||'[see quote]'}/month. Same service, every other week.
+
+If the timing's not right, no problem — just let me know and I'll stop reaching out. 🐾`,
+
+    l=>`Hi ${l.fname}, Jesse with Mountain View.
+
+Still have you on my list and wanted to check in one more time. The yard's not going anywhere and neither are we — if you want a clean yard every week without dealing with it yourself, that's what we do.
+
+30-day guarantee means your first month is risk-free. If it's not worth it, I'll refund it.
+
+Reply here if you want to get started. 🐾`,
+
+    l=>`Hey ${l.fname}, last one from me — I promise.
+
+If the timing ever works out, Mountain View will be here. We're in ${l.town} year-round and we'd love to have you.
+
+Just reply whenever you're ready and we'll figure it out.
+
+Jesse, Mountain View Pet Waste Removal 🐾`
+  ],
+  B:[
+    l=>`Hi ${l.fname}, Jesse here from Mountain View. Good talking with you.
+
+Here's everything in writing so you've got it:
+🐾 Discounted cleanup: ${l.ini||'[see quote]'} (instead of ${l.ot||'[see quote]'})
+🐾 Weekly service: ${l.mo||'[see quote]'}/month
+🐾 First weekly visit free
+🐾 Complimentary yard deodorizer
+🐾 30-day money-back guarantee on your first month
+${l.biweekly==='yes'?'\n🐾 Bi-weekly also available: '+(l.bw||'[see quote]')+'/month\n':''}
+Just a heads up — that discounted cleanup rate is only good for 48 hours. Reply here when you're ready. 😊`,
+
+    l=>`Hey ${l.fname}, Jesse from Mountain View.
+
+Wanted to remind you — the Spring Special pricing is only locked in for 48 hours from when we spoke. After that, the one-time cleanup goes back to ${l.ot||'[see quote]'}.
+
+The discounted rate of ${l.ini||'[see quote]'} is only available with recurring service. Just reply here if you want to lock it in.`,
+
+    l=>`Hi ${l.fname}, Jesse from Mountain View.
+
+I know "I'll think about it" is sometimes about the money — so let me be straight with you.
+
+The 30-day guarantee means your first month of service is completely covered. If it's not worth it, I'll refund it. No hassle, no questions.
+
+The discounted cleanup at ${l.ini||'[see quote]'} plus the free first weekly visit means you're getting a lot of value up front. The risk is as low as it gets.
+
+Reply here if you want to talk it through or get started. 😊`,
+
+    l=>`Hey ${l.fname}, Jesse checking in.
+
+Spring schedule around ${l.town} is starting to fill up. I want to make sure I can still get you a spot if you want one.
+
+The Spring Special is still available but it won't be around much longer. If you're close to a yes, just reply here and I'll take care of everything.
+
+If the timing's not right, no hard feelings — just let me know. 🐾`,
+
+    l=>`Hi ${l.fname}, Jesse here.
+
+A clean yard every week without thinking about it — that's what we give our customers. We show up, we handle it, you move on with your day.
+
+The 30-day guarantee means your first month is risk-free. If it's not what you expected, I'll refund it.
+${l.biweekly==='yes'?'\nBi-weekly at '+(l.bw||'[see quote]')+'/month is still on the table too if weekly feels like too much.\n':''}
+Reply here whenever you're ready. 🐾`,
+
+    l=>`Hey ${l.fname}, last check-in from me this spring.
+
+It was great talking with you. The offer stands anytime — even after the Spring Special ends, just reach out and we'll work something out.
+
+Jesse, Mountain View Pet Waste Removal 🐾`
+  ],
+  C:[
+    l=>`Hi ${l.fname}, Jesse from Mountain View. Great talking with you!
+
+Here's everything written out so it's easy to share with your partner:
+🐾 One-time cleanup: ${l.ot||'[see quote]'}
+🐾 Discounted cleanup with weekly service: ${l.ini||'[see quote]'}
+🐾 Weekly service: ${l.mo||'[see quote]'}/month
+🐾 First weekly visit free
+🐾 Complimentary yard deodorizer
+🐾 30-day money-back guarantee on the first month — if it's not worth it, full refund
+${l.biweekly==='yes'?'\n🐾 Bi-weekly also available: '+(l.bw||'[see quote]')+'/month\n':''}
+One thing to flag — the Spring Special pricing is good for 48 hours. After that the discounted cleanup rate goes away.
+
+Feel free to forward this or have them call me at 207-256-1092. 😊`,
+
+    l=>`Hey ${l.fname}, Jesse here. Hope you got a chance to connect with your partner.
+
+The main thing I'd want them to know: the 30-day guarantee means the first month of service is completely risk-free. If it's not worth it after the first month, I'll refund it. Simple as that.
+
+The Spring Special — including the discounted cleanup at ${l.ini||'[see quote]'} — is only locked in for 48 hours from when we spoke.
+
+Whenever you're both ready, just reply here. 🐾`,
+
+    l=>`Hi ${l.fname}, Jesse from Mountain View.
+
+If your partner has questions about how it works, pricing, or scheduling, they're welcome to call or text me directly at 207-256-1092. Sometimes easier to just ask.
+${l.biweekly==='yes'?'\nAnd just a reminder — bi-weekly at '+(l.bw||'[see quote]')+'/month is an option too if weekly feels like too much.\n':''}
+Hope to hear from you both soon. 😊`,
+
+    l=>`Hey ${l.fname}, Jesse here.
+
+Spring schedule around ${l.town} is filling up and I want to make sure I can hold a spot for you both. The Spring Special won't run all season.
+
+If you're close to a decision, just reply here and I'll lock in your spot. No pressure if the timing isn't right. 🐾`,
+
+    l=>`Hi ${l.fname}, Jesse from Mountain View.
+
+If the hesitation is about whether it's worth the cost — that's what the 30-day guarantee is for. First month is covered. If it doesn't deliver, I'll refund it.
+
+Most people find that having one less thing to deal with each week is worth it by itself. The clean yard is the bonus.
+
+Reply here anytime. 🐾`,
+
+    l=>`Hey ${l.fname}, last one from me this spring.
+
+It was great talking with you. If the timing works out later this season or next spring, we'll be here. Just reach out and we'll make it work.
+
+Wishing you a great spring in ${l.town}. Jesse, Mountain View Pet Waste Removal 🐾`
+  ]
+}
+
+// ══════════════════════════════════════════
+// STATE
+// ══════════════════════════════════════════
+let src='', leadsource='', currentQuote={};
+let selectedSeq='', selectedPrice='no';
+let leads=[], activeFilter='', activeTab='quote';
+
+function fmt(n){return '$'+n.toFixed(2);}
+function today(){return new Date().toISOString().split('T')[0];}
+function addDays(d,n){const dt=new Date(d);dt.setDate(dt.getDate()+n);return dt.toISOString().split('T')[0];}
+function touchDate(lead,i){return addDays(lead.startDate,SCHED[i]);}
+function getNext(lead){
+  if(lead.status!=='active')return null;
+  for(let i=lead.currentTouch;i<6;i++)return{idx:i,date:touchDate(lead,i)};
+  return null;
+}
+function isOverdue(d){return d<today();}
+function isToday(d){return d===today();}
+function dayLabel(d){
+  const t=today();
+  if(d===t)return'Today';
+  const diff=Math.round((new Date(d)-new Date(t))/864e5);
+  if(diff<0)return Math.abs(diff)+'d overdue';
+  if(diff===1)return'Tomorrow';
+  return'In '+diff+'d';
+}
+
+// ══════════════════════════════════════════
+// STORAGE — single unified store
+// ══════════════════════════════════════════
+function saveLeads(){localStorage.setItem('mvpwr_unified_v1',JSON.stringify(leads));}
+function loadLeads(){
+  try{leads=JSON.parse(localStorage.getItem('mvpwr_unified_v1')||'[]');}catch(e){leads=[];}
+}
+
+// ══════════════════════════════════════════
+// NAV
+// ══════════════════════════════════════════
+function switchTab(tab){
+  activeTab=tab;
+  document.querySelectorAll('.view').forEach(v=>v.classList.remove('show'));
+  document.querySelectorAll('.nb').forEach(b=>b.classList.remove('on'));
+  if(tab==='pipeline'){
+    document.getElementById('v-pipeline').classList.add('show');
+    renderPipeline();
+  } else if(tab==='leads'){
+    document.getElementById('v-leads').classList.add('show');
+    renderAll();
+  } else {
+    // quote tab — show wherever we are in quote flow
+    const qViews=['v-paste','v-review','v-script'];
+    const active=qViews.find(v=>document.getElementById(v).classList.contains('show'));
+    if(!active)document.getElementById('v-paste').classList.add('show');
+    else document.getElementById(active).classList.add('show');
+  }
+  document.getElementById('nb-'+tab).classList.add('on');
+  window.scrollTo(0,0);
+}
+
+function showView(name){
+  document.querySelectorAll('.view').forEach(v=>v.classList.remove('show'));
+  document.getElementById('v-'+name).classList.add('show');
+  window.scrollTo(0,0);
+}
+
+function showPane(name){
+  document.querySelectorAll('.pane').forEach(p=>p.classList.remove('show'));
+  document.getElementById('pane-'+name).classList.add('show');
+  document.querySelectorAll('[id^="sp-"]').forEach(b=>b.classList.remove('active'));
+  const sp=document.getElementById('sp-'+name);
+  if(sp)sp.classList.add('active');
+  window.scrollTo(0,0);
+}
+
+// ══════════════════════════════════════════
+// QUOTE TOOL — PARSE
+// ══════════════════════════════════════════
+function doParse(){
+  const raw=document.getElementById('zText').value.trim();
+  if(!raw){document.getElementById('parseMsg').innerHTML='<div class="err">Please paste the lead text first.</div>';return;}
+  let parsed={};
+  if(raw.toUpperCase().startsWith('WIX:')||(/\|/.test(raw)&&raw.split('\n').length<=2)){
+    parsed=parseWix(raw);leadsource='wix';
+  }else{parsed=parseZapier(raw);leadsource='zapier';}
+  applyParsed(parsed);
+  document.getElementById('parseMsg').innerHTML='<div class="ok">Parsed from '+(leadsource==='wix'?'Wix':'Zapier')+'</div>';
+  refresh();showView('review');
+}
+
+function parseZapier(raw){
+  const d={};
+  raw.split('\n').forEach(l=>{const i=l.indexOf(':');if(i<0)return;d[l.slice(0,i).trim().toLowerCase()]=l.slice(i+1).trim();});
+  const full=d['name']||'';
+  const rawB=(d['last cleaned']||d['lastcleaned']||'').toLowerCase().replace(/[\s\u2013\u2014]/g,'').replace('–','-');
+  const rawY=(d['yard']||d['yard size']||'standard').toLowerCase();
+  return{fullName:full,firstName:full.split(' ')[0]||'',phone:d['phone']||'',email:d['email']||'',zip:d['zip']||d['zip code']||'',address:d['address']||'',dogs:Math.min(parseInt(d['dogs']||'1')||1,4),yard:rawY.includes('small')?'small':rawY.includes('large')?'large':'standard',buildup:BM[rawB]||'',source:d['source']||'Meta',contact:''};
+}
+
+function parseWix(raw){
+  const line=raw.replace(/^WIX:\s*/i,'').trim();
+  const p=line.split('|').map(s=>s.trim());
+  const full=p[0]||'';
+  const rawY=(p[3]||'standard').toLowerCase();
+  const rawB=(p[5]||'').toLowerCase().replace(/[\s\u2013\u2014]/g,'').replace('–','-');
+  const c=p[6]||'';
+  return{fullName:full,firstName:full.split(' ')[0]||'',phone:p[1]||'',email:'',zip:p[2]||'',address:'',dogs:Math.min(parseInt(p[4])||1,4),yard:rawY.includes('small')?'small':rawY.includes('large')?'large':'standard',buildup:BM[rawB]||'',source:'Wix Website',contact:c.toLowerCase().includes('text')?'Text':c.toLowerCase().includes('call')?'Call':c};
+}
+
+function applyParsed(p){
+  setF('iName',p.firstName||'');setF('iFullName',p.fullName||'');
+  setF('iPhone',p.phone||'');setF('iEmail',p.email||'');
+  setF('iZip',p.zip||'');setF('iAddress',p.address||'');
+  document.getElementById('iDogs').value=String(p.dogs||'');
+  document.getElementById('iYard').value=p.yard||'standard';
+  document.getElementById('iBuildup').value=p.buildup||'';
+  document.getElementById('iContact').value=p.contact||'';
+  src=p.source||'';
+}
+
+function setF(id,v){const el=document.getElementById(id);if(el){el.value=v;el.className=v?'af':'';}}
+function resetPaste(){document.getElementById('zText').value='';document.getElementById('parseMsg').textContent='';}
+
+function goManual(){
+  ['iName','iFullName','iPhone','iEmail','iZip','iAddress'].forEach(id=>setF(id,''));
+  document.getElementById('iDogs').value='';
+  document.getElementById('iYard').value='standard';
+  document.getElementById('iBuildup').value='';
+  document.getElementById('iContact').value='';
+  src='';leadsource='manual';
+  document.getElementById('sourceBadge').innerHTML='<span class="badge badge-manual">In-Person</span>';
+  refresh();showView('review');
+}
+
+function goToScript(){
+  // reset seq selection
+  selectedSeq='';selectedPrice='no';
+  document.querySelectorAll('.seq-opt').forEach(o=>o.classList.remove('sel'));
+  document.querySelectorAll('.price-opt').forEach(o=>o.classList.remove('sel'));
+  document.getElementById('po-no').classList.add('sel');
+  document.getElementById('save-to-tracker-btn').style.opacity='0.4';
+  document.getElementById('save-seq-msg').textContent='';
+  showView('script');showPane('script');
+}
+
+// ══════════════════════════════════════════
+// QUOTE TOOL — REFRESH
+// ══════════════════════════════════════════
+function refresh(){
+  const name=document.getElementById('iName').value.trim();
+  const full=document.getElementById('iFullName').value.trim();
+  const phone=document.getElementById('iPhone').value.trim();
+  const email=document.getElementById('iEmail').value.trim();
+  const addr=document.getElementById('iAddress').value.trim();
+  const zip=document.getElementById('iZip').value.trim();
+  const dogs=parseInt(document.getElementById('iDogs').value)||0;
+  const yard=document.getElementById('iYard').value;
+  const bu=document.getElementById('iBuildup').value;
+  const contact=document.getElementById('iContact').value;
+  const town=ZT[zip]||'';
+  const isR=REG.has(zip),isP=PRE.has(zip);
+  const isOOS=zip.length===5&&!isR&&!isP;
+
+  const tb=document.getElementById('tierBadge');
+  if(isR){tb.textContent=town+' — Regular';tb.className='badge badge-reg';}
+  else if(isP){tb.textContent=town+' — Premium';tb.className='badge badge-pre';}
+  else if(isOOS){tb.textContent='Outside service area';tb.className='badge badge-oos';}
+  else{tb.textContent='—';tb.className='badge badge-unk';}
+
+  const oosBanner=document.getElementById('oosBanner');
+  if(isOOS&&zip.length===5){
+    oosBanner.innerHTML='<div class="oos-banner">⚠ '+(town||'This area')+' is outside your current service area.</div>';
+  }else{oosBanner.innerHTML='';}
+
+  const mod=yard==='small'?0.90:yard==='large'?1.15:1.0;
+  const di=Math.min(Math.max(dogs-1,0),3);
+  let ot='',ini='',mo='',ps='',bw='',bwps='';
+  if(dogs>0&&bu&&(isR||isP)){
+    const mTab=isP?MP:MR;
+    const otN=OP[bu][di]*mod,inN=IP[bu][di]*mod;
+    const moN=mTab.weekly[di]*mod,bwN=mTab.biweekly[di]*mod;
+    ot=fmt(otN);ini=fmt(inN);mo=fmt(moN);ps=fmt(moN/4.33);bw=fmt(bwN);bwps=fmt(bwN/2.17);
+  }
+
+  const dt=town||(zip.length===5?'your area':'');
+  const dd=dogs===1?'1 dog':dogs>1?dogs+' dogs':'';
+  const yl=yard==='small'?'Small':yard==='large'?'Large':'Standard';
+
+  const sb=document.getElementById('sourceBadge');
+  if(leadsource==='wix')sb.innerHTML='<span class="badge badge-wix">Wix Website</span>';
+  else if(leadsource==='zapier')sb.innerHTML='<span class="badge badge-zapier">'+(src||'Meta')+'</span>';
+  else if(leadsource==='manual')sb.innerHTML='<span class="badge badge-manual">In-Person</span>';
+  else sb.innerHTML='';
+
+  setQV('qOT',ot);setQV('qIN',ini);
+  setQV('qMO',mo);document.getElementById('qMOsub').textContent=ps?ps+'/visit':'';
+  setQV('qBW',bw);document.getElementById('qBWsub').textContent=bwps?bwps+'/visit':'';
+
+  const cLabel=contact==='Text'?'Text preferred':contact==='Call'?'Call preferred':'—';
+  document.getElementById('leadCard').innerHTML=[
+    ['Name',full||name||'—'],['Phone',phone||'—'],['Town',dt||'—'],
+    ['Dogs',dd||'—'],['Yard',yl],['Last cleaned',BD[bu]||'—'],
+    ['Tier',isOOS?'Outside service area':isP?'Premium':isR?'Regular':'—'],
+    ['Contact',cLabel]
+  ].map(([k,v])=>'<div class="lr"><span class="lk">'+k+'</span><span class="lv">'+v+'</span></div>').join('');
+
+  const cb=document.getElementById('contactBanner');
+  if(contact==='Text')cb.innerHTML='<div class="contact-banner text-pref">This lead prefers TEXT</div>';
+  else if(contact==='Call')cb.innerHTML='<div class="contact-banner call-pref">This lead prefers to be called</div>';
+  else cb.innerHTML='';
+
+  const pill=document.getElementById('pill');
+  if(isOOS&&zip.length===5){pill.textContent='Outside service area';pill.className='pill oos';}
+  else if(ot&&name){pill.textContent='Ready to call';pill.className='pill ready';}
+  else{pill.textContent='Fill in info';pill.className='pill';}
+
+  sp('s-n1',name,'Name');sp('s-n2',name,'Name');
+  sp('s-t1',dt,'Town');sp('s-t2',dt,'Town');sp('s-t3',dt,'Town');
+  sp('s-d1',dd,'X dogs');sp('s-b1',BL[bu]||'','X months');
+  ['s-ot1','s-ot2','s-ot3','s-ot4'].forEach(id=>sp(id,ot,'$___'));
+  ['s-in1','s-in2','s-in3','s-in4'].forEach(id=>sp(id,ini,'$___'));
+  sp('s-mo1',mo,'$___');sp('s-ps1',ps,'$___');
+  sp('s-mo2',mo,'$___');sp('s-bw1',bw,'$___');sp('s-bwps1',bwps,'$___');
+  sp('s-mo3',mo,'$___');sp('s-bwps2',bwps,'$___');
+
+  document.getElementById('c-name').textContent=full||'—';
+  document.getElementById('c-phone').textContent=phone||'—';
+  document.getElementById('c-email').textContent=email||'N/A';
+  document.getElementById('c-contact').textContent=contact||'—';
+  const ca=document.getElementById('c-addr');ca.textContent=addr||'Capture on call';ca.className=addr?'cv':'cv warn';
+  document.getElementById('c-zip').textContent=zip||'—';
+  document.getElementById('c-town').textContent=dt||'—';
+  document.getElementById('c-dogs').textContent=dd||'—';
+  document.getElementById('c-yard').textContent=yl;
+  document.getElementById('c-bu').textContent=BD[bu]||'—';
+  document.getElementById('c-ot').textContent=ot||'—';
+  document.getElementById('c-in').textContent=ini||'—';
+  document.getElementById('c-mo').textContent=mo?(mo+' ('+ps+'/visit)'):'—';
+  document.getElementById('c-bw').textContent=bw?(bw+' ('+bwps+'/visit)'):'—';
+  document.getElementById('c-src').textContent=src||(leadsource==='wix'?'Wix Website':'Meta');
+
+  const n=name||'[Name]',t=dt||'[Town]',bl=BL[bu]||'[buildup]',dg=dd||'[dogs]';
+  const OT=ot||'$[one-time]',IN=ini||'$[initial]',MO=mo||'$[monthly]',PS=ps||'$[per-visit]';
+
+  document.getElementById('m1').textContent='Hi '+n+', this is Jesse with Mountain View Pet Waste Removal, thanks for reaching out. Before I put your quote together I just wanted to know if you\'re looking for a one time cleanup or ongoing service at your home in '+t+'?';
+  document.getElementById('m2').textContent='For '+dg+' and about '+bl+' of buildup at your home in '+t+', a one-time cleanup would be '+OT+'.\n\nIf you\'d rather never deal with the cleanup again, we also offer weekly service. When someone starts weekly we heavily discount that first cleanup and include a few extra perks for new clients.\n\nIf you\'d like I can also send over what the weekly option would look like for your yard.';
+  document.getElementById('m3').textContent='If you start weekly service, the initial cleanup is heavily discounted to '+IN+'. Monthly service would be '+MO+', which works out to about '+PS+' per cleanup.\n\nWe are currently running our "Fresh Start" spring offer which includes:\n• The deeply discounted initial cleanup\n• Priority scheduling\n• Your first regular service week is FREE\n• A complimentary yard deodorizer treatment\n• 30-day risk-free money back guarantee\n\nIt\'s the easiest way to get the yard completely reset and then never have to worry about it again.';
+  document.getElementById('m4').textContent='Hey '+n+', it was great speaking with you! Just wanted to send over a quick recap of everything we discussed.\n\nFor your home in '+t+', a standard one-time cleanup would be '+OT+'. However, if you move forward with our weekly service, that initial deep clean is heavily discounted to just '+IN+'.\n\nHere\'s what\'s included with our Fresh Start spring offer:\n• Initial deep clean discounted to '+IN+'\n• Monthly service: '+MO+' (about '+PS+' per visit)\n• Complimentary yard deodorizer treatment\n• First regular weekly visit FREE\n• 30-day risk-free money back guarantee\n\nIt\'s the easiest way to get the yard completely reset and keep it that way all season. No stress, no mess - just a clean yard every week.\n\nFeel free to reach out with any questions - I\'m happy to help!\n\nJesse\nMountain View Pet Waste Removal';
+
+  const oosSection=document.getElementById('oosTextSection');
+  if(isOOS&&zip.length===5){
+    oosSection.style.display='block';
+    const oosT=town||'your area';
+    document.getElementById('mOOS').textContent='Hi '+n+', this is Jesse with Mountain View Pet Waste Removal. Thank you so much for reaching out - I really appreciate your interest!\n\nUnfortunately, '+oosT+' is just outside our current service area. We are actively expanding, so I\'ve added your information to our list and will absolutely reach out as soon as we make it to your area.\n\nThanks again, and I hope we get the chance to serve you soon!';
+  }else{oosSection.style.display='none';}
+
+  currentQuote={
+    fname:name,fullName:full||name,phone,email,contact,zip,town:dt,
+    dogs:dd,yard:yl,buildup:BD[bu]||'',ot,ini,mo,bw,ps,bwps,
+    source:src||(leadsource==='wix'?'Wix Website':'Meta'),
+    address:addr,ts:Date.now()
+  };
+}
+
+function sp(id,v,fb){const el=document.getElementById(id);if(!el)return;if(v){el.textContent=v;el.className='val';}else{el.textContent=fb;el.className='blank';}}
+function setQV(id,v){const el=document.getElementById(id);if(!el)return;if(v){el.textContent=v;el.className='qv';}else{el.textContent='—';el.className='qv e';}}
+function tog(id){const b=document.getElementById(id);const o=b.classList.contains('open');document.querySelectorAll('.obj-body').forEach(x=>x.classList.remove('open'));if(!o)b.classList.add('open');}
+
+// ══════════════════════════════════════════
+// SEQUENCE ASSIGNMENT
+// ══════════════════════════════════════════
+function selSeq(s){
+  selectedSeq=s;
+  document.querySelectorAll('.seq-opt').forEach(o=>o.classList.remove('sel'));
+  document.getElementById('so-'+s).classList.add('sel');
+  updateSaveBtn();
+}
+function selPrice(v){
+  selectedPrice=v;
+  document.querySelectorAll('.price-opt').forEach(o=>o.classList.remove('sel'));
+  document.getElementById('po-'+v).classList.add('sel');
+}
+function updateSaveBtn(){
+  document.getElementById('save-to-tracker-btn').style.opacity=selectedSeq?'1':'0.4';
+}
+
+async function saveAsConverted(){
+  const q=currentQuote;
+  if(!q.fname&&!q.fullName){document.getElementById('save-seq-msg').textContent='Go back and fill in lead info first.';return;}
+  const phone=q.phone?q.phone.replace(/\D/g,''):'';
+  const existing=leads.findIndex(l=>l.phone&&l.phone.replace(/\D/g,'')===phone&&phone);
+  const id=existing>=0?leads[existing].id:Date.now().toString();
+  const lead={
+    id,toolId:id,
+    fname:q.fname||q.fullName.split(' ')[0]||'',
+    fullName:q.fullName||q.fname,
+    town:q.town||'',phone:q.phone||'',email:q.email||'',
+    dogs:q.dogs||'',yard:q.yard||'',zip:q.zip||'',source:q.source||'',
+    buildup:q.buildup||'',contact:q.contact||'',
+    ot:q.ot||'',ini:q.ini||'',mo:q.mo||'',bw:q.bw||'',ps:q.ps||'',bwps:q.bwps||'',
+    seq:'',biweekly:'no',notes:'',startDate:today(),currentTouch:0,
+    status:'converted',
+    log:[{date:today(),note:'Closed on call — marked Converted'}],
+    _row:existing>=0?leads[existing]._row:null
+  };
+  if(existing>=0){leads[existing]=lead;}else{leads.unshift(lead);}
+  saveLeads();
+  document.getElementById('save-seq-msg').textContent='Saved as Converted';
+  if(lead._row){showSyncStatus('Saving to sheet...','loading');await writeToolFieldsToSheet(lead);showSyncStatus('Saved to sheet','ok');}
+}
+
+function saveLeadToTracker(){
+  if(!selectedSeq){document.getElementById('save-seq-msg').textContent='Pick a sequence first.';return;}
+  const q=currentQuote;
+  if(!q.fname&&!q.fullName){document.getElementById('save-seq-msg').textContent='Go back and fill in lead info first.';return;}
+
+  // check for duplicate by phone
+  const existing=leads.findIndex(l=>l.phone&&l.phone===q.phone);
+  const lead={
+    id:existing>=0?leads[existing].id:Date.now().toString(),
+    fname:q.fname||q.fullName.split(' ')[0]||'',
+    fullName:q.fullName||q.fname,
+    town:q.town||'',
+    phone:q.phone||'',
+    email:q.email||'',
+    dogs:q.dogs||'',
+    yard:q.yard||'',
+    zip:q.zip||'',
+    source:q.source||'',
+    buildup:q.buildup||'',contact:q.contact||'',
+    ot:q.ot||'',ini:q.ini||'',mo:q.mo||'',bw:q.bw||'',
+    seq:selectedSeq,
+    biweekly:selectedPrice,
+    notes:'',
+    startDate:today(),
+    currentTouch:0,
+    status:'active',
+    log:[{date:today(),note:'Lead added from quote tool. Seq '+selectedSeq+'.'}]
+  };
+
+  if(existing>=0){leads[existing]=lead;}else{leads.unshift(lead);}
+  saveLeads();
+
+  document.getElementById('save-seq-msg').textContent='Added to Sequence '+selectedSeq+' — visible in Today queue';
+  document.getElementById('save-to-tracker-btn').textContent='Added ✓';
+  setTimeout(()=>{document.getElementById('save-to-tracker-btn').textContent='Add to follow-up tracker →';},3000);
+}
+
+function newLead(){src='';leadsource='';currentQuote={};showView('paste');}
+
+async function saveUnassigned(){
+  const q=currentQuote;
+  if(!q.fname&&!q.fullName){alert('Fill in at least the lead name first.');return;}
+  const phone=q.phone?q.phone.replace(/\D/g,''):'';
+  const existing=leads.findIndex(l=>l.phone&&l.phone.replace(/\D/g,'')===phone&&phone);
+  const id=existing>=0?leads[existing].id:Date.now().toString();
+  const lead={
+    id,toolId:id,
+    fname:q.fname||q.fullName.split(' ')[0]||'',
+    fullName:q.fullName||q.fname,
+    town:q.town||'',phone:q.phone||'',email:q.email||'',
+    dogs:q.dogs||'',yard:q.yard||'',zip:q.zip||'',source:q.source||'',
+    buildup:q.buildup||'',contact:q.contact||'',
+    ot:q.ot||'',ini:q.ini||'',mo:q.mo||'',bw:q.bw||'',ps:q.ps||'',bwps:q.bwps||'',
+    seq:'',biweekly:'no',notes:'',startDate:today(),currentTouch:0,
+    status:'active',
+    log:[{date:today(),note:'Saved from quote tool — sequence not yet assigned'}],
+    _row:existing>=0?leads[existing]._row:null
+  };
+  if(existing>=0){leads[existing]=lead;}else{leads.unshift(lead);}
+  saveLeads();
+  alert(lead.fname+' saved to All Leads. Assign a sequence when ready.');
+  showView('paste');
+}
+
+function loadLeadToQuote(id){
+  const l=leads.find(x=>x.id===id);if(!l)return;
+  const nameParts=(l.fullName||l.fname||'').split(' ');
+  setF('iName',l.fname||nameParts[0]||'');
+  setF('iFullName',l.fullName||l.fname||'');
+  setF('iPhone',l.phone||'');
+  setF('iEmail',l.email||'');
+  setF('iZip',l.zip||'');
+  setF('iAddress',l.address||'');
+  // Restore saved dogs count
+  const dogMatch=(l.dogs||'').match(/([0-9]+)/);
+  document.getElementById('iDogs').value=dogMatch?dogMatch[1]:'';
+  // Restore saved yard size
+  const yardMap={'Small':'small','Large':'large','Standard':'standard'};
+  document.getElementById('iYard').value=yardMap[l.yard]||'standard';
+  // Restore saved buildup/last cleaned
+  const buRev=l.buildup?Object.entries(BD).find(([k,v])=>v===l.buildup):null;
+  document.getElementById('iBuildup').value=buRev?buRev[0]:'';
+  document.getElementById('iContact').value=l.contact||'';
+  src=l.source||'';
+  leadsource=l.source&&l.source.toLowerCase().includes('wix')?'wix':'zapier';
+  refresh();
+  showView('review');
+  switchTab('quote');
+}
+
+// ══════════════════════════════════════════
+// PIPELINE — TODAY VIEW
+// ══════════════════════════════════════════
+function renderPipeline(){
+  renderStats();
+  const overdue=[],todayArr=[],upcoming=[];
+  leads.forEach(l=>{
+    if(l.status!=='active')return;
+    if(!l.seq)return; // skip unassigned leads in today queue
+    const n=getNext(l);if(!n)return;
+    if(isOverdue(n.date))overdue.push({l,n});
+    else if(isToday(n.date))todayArr.push({l,n});
+    else upcoming.push({l,n});
+  });
+  upcoming.sort((a,b)=>a.n.date.localeCompare(b.n.date));
+
+  let html='';
+  if(!overdue.length&&!todayArr.length&&!upcoming.length){
+    html='<div class="empty"><div class="empty-icon">🐾</div><p style="font-size:14px">No active leads yet.<br>Quote a lead then assign them a sequence.</p></div>';
+  }
+  if(overdue.length){
+    html+='<div class="section-lbl">Overdue <span class="cnt red">'+overdue.length+'</span></div>';
+    overdue.forEach(({l,n})=>{html+=qCard(l,n,'overdue');});
+    html+='<div style="height:6px"></div>';
+  }
+  if(todayArr.length){
+    html+='<div class="section-lbl" style="margin-top:'+(overdue.length?'4px':'0')+'">Send today <span class="cnt">'+todayArr.length+'</span></div>';
+    todayArr.forEach(({l,n})=>{html+=qCard(l,n,'today');});
+    html+='<div style="height:6px"></div>';
+  }
+  if(upcoming.length){
+    html+='<div class="section-lbl" style="margin-top:4px">Coming up</div>';
+    upcoming.slice(0,7).forEach(({l,n})=>{html+=qCard(l,n,'upcoming');});
+  }
+  document.getElementById('queue-content').innerHTML=html;
+}
+
+function qCard(l,n,type){
+  const dl=dayLabel(n.date);
+  const dlClass=type==='overdue'?'overdue':type==='today'?'today':'upcoming';
+  return '<div class="lead-card '+type+'">'
+    +'<div class="card-top"><div><div class="lead-name">'+l.fname+(l.fullName&&l.fullName!==l.fname?' <span style="font-weight:400;font-size:13px;color:#888780">'+l.fullName.split(' ').slice(1).join(' ')+'</span>':'')+'</div><div class="lead-town">'+l.town+(l.phone?' · '+l.phone:'')+'</div></div>'
+    +'<div class="due-lbl '+dlClass+'">'+dl+'</div></div>'
+    +'<div class="card-meta"><span class="badge badge-'+(l.seq?l.seq.toLowerCase():'unk')+'">'+(l.seq?'Seq '+l.seq:'Unassigned')+'</span>'
+    +'<span style="font-size:11px;color:#888780">·</span>'
+    +'<span class="meta-txt">Touch '+(n.idx+1)+' of 6</span>'
+    +'<span style="font-size:11px;color:#888780">·</span>'
+    +'<span class="meta-txt">'+(l.seq?SUBJECTS[l.seq][n.idx]:'')+'</span>'
+    +(l.biweekly==='yes'?'<span class="badge badge-biweekly">bi-wkly</span>':'')
+    +'</div>'
+    +(l.notes?'<div class="card-note">'+l.notes+'</div>':'')
+    +'<div class="card-btns">'
+    +'<button class="btn-sm green" onclick="openTouch(\''+l.id+'\','+n.idx+')">View text</button>'
+    +'<button class="btn-sm" onclick="markSent(\''+l.id+'\','+n.idx+')">Mark sent</button>'
+    +'<button class="btn-sm" onclick="openEdit(\''+l.id+'\')">Edit</button>'
+    +'</div></div>';
+}
+
+function renderStats(){
+  const t=today();
+  const due=leads.filter(l=>{
+    if(l.status!=='active')return false;
+    if(!l.seq)return false;
+    const n=getNext(l);return n&&(isToday(n.date)||isOverdue(n.date));
+  }).length;
+  const active=leads.filter(l=>l.status==='active').length;
+  const conv=leads.filter(l=>l.status==='converted').length;
+  document.getElementById('stats').innerHTML=
+    '<div class="stat-card"><div class="stat-num '+(due>0?'red':'')+'">'+due+'</div><div class="stat-lbl">Due</div></div>'
+    +'<div class="stat-card"><div class="stat-num blu">'+active+'</div><div class="stat-lbl">Active</div></div>'
+    +'<div class="stat-card"><div class="stat-num grn">'+conv+'</div><div class="stat-lbl">Won</div></div>'
+    +'<div class="stat-card"><div class="stat-num">'+leads.length+'</div><div class="stat-lbl">Total</div></div>';
+}
+
+// ══════════════════════════════════════════
+// ALL LEADS VIEW
+// ══════════════════════════════════════════
+function setFilter(el,val){
+  activeFilter=val;
+  document.querySelectorAll('.filter-pill').forEach(p=>p.classList.remove('active'));
+  el.classList.add('active');
+  renderAll();
+}
+
+function renderAll(){
+  renderStats();
+  const filtered=activeFilter?leads.filter(l=>l.status===activeFilter):leads;
+  if(!filtered.length){
+    document.getElementById('all-content').innerHTML='<div class="empty"><div class="empty-icon">🐾</div><p style="font-size:14px">No leads here yet.</p></div>';
+    return;
+  }
+  document.getElementById('all-content').innerHTML=filtered.map(l=>{
+    const n=getNext(l);
+    const sb='<span class="badge badge-'+l.status+'">'+(l.status==='active'?'Active':l.status==='converted'?'Converted':l.status==='nurture'?'Nurture':'Lost')+'</span>';
+    const next=n?'Touch '+(n.idx+1)+' · '+dayLabel(n.date):(l.status==='active'?'Sequence complete':'');
+    return '<div class="lead-card upcoming">'
+      +'<div class="card-top"><div><div class="lead-name">'+l.fname+(l.fullName&&l.fullName!==l.fname?' <span style="font-weight:400;font-size:13px;color:#888780">'+l.fullName.split(' ').slice(1).join(' ')+'</span>':'')+'</div>'
+      +'<div class="lead-town">'+l.town+(l.dogs?' · '+l.dogs:'')+'</div></div>'+sb+'</div>'
+      +'<div class="card-meta"><span class="badge badge-'+(l.seq?l.seq.toLowerCase():'unk')+'">'+(l.seq?'Seq '+l.seq+' · '+SEQ_LABELS[l.seq]:'Unassigned')+'</span>'+(l.biweekly==='yes'?'<span class="badge badge-biweekly">bi-wkly</span>':'')+'</div>'
+      +(l.phone||next?'<div class="meta-txt" style="margin-bottom:8px;font-size:12px">'+(l.phone?l.phone:'')+(l.phone&&next?' · ':'')+next+'</div>':'')
+      +(l.ot?'<div style="font-size:12px;color:#2d6a4f;font-weight:600;margin-bottom:8px">OT: '+l.ot+' · Initial: '+l.ini+' · Monthly: '+l.mo+'</div>':'')
+      +(l.notes?'<div class="card-note">'+l.notes+'</div>':'')
+      +'<div class="card-btns">'
+      +(n&&l.status==='active'?'<button class="btn-sm green" onclick="openTouch(\''+l.id+'\','+n.idx+')">View text</button>':'')
+      +'<button class="btn-sm green" onclick="loadLeadToQuote(\''+l.id+'\')">Quote</button>'
+      +'<button class="btn-sm" onclick="openEdit(\''+l.id+'\')">Edit</button>'
+      +'</div></div>';
+  }).join('');
+}
+
+// ══════════════════════════════════════════
+// TOUCH MODAL
+// ══════════════════════════════════════════
+function openTouch(id,idx){
+  const l=leads.find(x=>x.id===id);if(!l)return;
+  const text=TEXTS[l.seq][idx](l);
+  const logHtml=l.log&&l.log.length
+    ?'<hr class="divider"><div style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.06em;color:#888780;margin-bottom:8px">Activity log</div>'
+      +l.log.slice().reverse().map(e=>'<div class="log-entry"><span class="log-date">'+e.date+'</span><span>'+e.note+'</span></div>').join('')
+    :'';
+  document.getElementById('touch-content').innerHTML=
+    '<div class="modal-title">'+l.fname+' · Touch '+(idx+1)+' of 6</div>'
+    +'<div class="modal-sub">Seq '+l.seq+' · '+SUBJECTS[l.seq][idx]+' · Day '+(SCHED[idx]===0?1:SCHED[idx]+1)+'</div>'
+    +(l.biweekly==='yes'?'<span class="badge badge-biweekly" style="margin-bottom:10px;display:inline-block">Bi-weekly lines included</span>':'')
+    +'<div class="copy-hint">TAP AND HOLD TO COPY</div>'
+    +'<div class="copy-box" id="copy-box">'+text+'</div>'
+    +'<div style="display:flex;gap:8px;margin:12px 0;flex-wrap:wrap">'
+    +'<button class="btn-sm green" onclick="copyTouchText()">Copy text</button>'
+    +'<button class="btn-sm" onclick="markSent(\''+id+'\','+idx+');closeModal(\'modal-touch\')">Mark sent</button>'
+    +(l.phone?'<a href="sms:'+l.phone+'" style="display:inline-flex;align-items:center;padding:6px 12px;font-size:12px;font-weight:500;background:#fff;border:1px solid #d3d1c7;border-radius:8px;color:#1a1a18;text-decoration:none">Open messages</a>':'')
+    +'</div>'
+    +'<hr class="divider">'
+    +'<div style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.06em;color:#888780;margin-bottom:8px">Log a reply or note</div>'
+    +'<div class="field"><textarea id="reply-note" rows="2" placeholder="e.g. Said they\'d decide by Friday..."></textarea></div>'
+    +'<button class="btn-sm" onclick="logNote(\''+id+'\','+idx+')">Save note</button>'
+    +logHtml;
+  document.getElementById('modal-touch').classList.add('open');
+}
+
+function copyTouchText(){
+  const el=document.getElementById('copy-box');
+  if(el)navigator.clipboard.writeText(el.textContent).catch(()=>{});
+}
+
+function markSent(id,idx){
+  const l=leads.find(x=>x.id===id);if(!l)return;
+  l.log=l.log||[];
+  l.log.push({date:today(),note:'Touch '+(idx+1)+' sent'});
+  l.currentTouch=Math.max(l.currentTouch,idx+1);
+  saveLeads();renderPipeline();if(activeTab==='leads')renderAll();
+}
+
+function logNote(id,idx){
+  const l=leads.find(x=>x.id===id);
+  const note=document.getElementById('reply-note').value.trim();
+  if(!l||!note)return;
+  l.log=l.log||[];
+  l.log.push({date:today(),note});
+  saveLeads();
+  openTouch(id,idx);
+}
+
+// ══════════════════════════════════════════
+// EDIT MODAL
+// ══════════════════════════════════════════
+function openEdit(id){
+  const l=leads.find(x=>x.id===id);if(!l)return;
+  // Build quote summary if pricing exists
+  const quotePanel=l.ot?
+    '<div style="background:#eaf3de;border-radius:10px;padding:12px 14px;margin-bottom:14px">'
+    +'<div style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.06em;color:#3b6d11;margin-bottom:8px">Quote on file</div>'
+    +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">'
+    +(l.dogs?'<div style="font-size:13px;color:#1a1a18"><span style="color:#888780">Dogs</span><br><strong>'+l.dogs+'</strong></div>':'')
+    +(l.yard?'<div style="font-size:13px;color:#1a1a18"><span style="color:#888780">Yard</span><br><strong>'+l.yard+'</strong></div>':'')
+    +(l.buildup?'<div style="font-size:13px;color:#1a1a18"><span style="color:#888780">Last cleaned</span><br><strong>'+l.buildup+'</strong></div>':'')
+    +(l.town?'<div style="font-size:13px;color:#1a1a18"><span style="color:#888780">Town</span><br><strong>'+l.town+'</strong></div>':'')
+    +'</div>'
+    +'<div style="border-top:0.5px solid #97c459;margin:10px 0"></div>'
+    +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">'
+    +(l.ot?'<div style="font-size:13px;color:#1a1a18"><span style="color:#888780">One-time</span><br><strong>'+l.ot+'</strong></div>':'')
+    +(l.ini?'<div style="font-size:13px;color:#1a1a18"><span style="color:#888780">Initial (weekly)</span><br><strong>'+l.ini+'</strong></div>':'')
+    +(l.mo?'<div style="font-size:13px;color:#1a1a18"><span style="color:#888780">Monthly weekly</span><br><strong>'+l.mo+'</strong></div>':'')
+    +(l.bw?'<div style="font-size:13px;color:#1a1a18"><span style="color:#888780">Monthly bi-wkly</span><br><strong>'+l.bw+'</strong></div>':'')
+    +'</div>'
+    +'<button class="ghost-btn" style="margin-top:10px;padding:8px;font-size:13px" onclick="closeModal(\'modal-edit\');loadLeadToQuote(\''+id+'\')">Update quote →</button>'
+    +'</div>'
+    :'<div style="background:#f5f4ef;border-radius:10px;padding:10px 14px;margin-bottom:14px;font-size:13px;color:#888780">No quote on file — <button style="background:none;border:none;color:#2d6a4f;font-weight:600;cursor:pointer;font-size:13px;padding:0" onclick="closeModal(\'modal-edit\');loadLeadToQuote(\''+id+'\')">tap to generate one</button></div>';
+
+  document.getElementById('edit-content').innerHTML=
+    '<div class="modal-title">'+l.fname+(l.fullName&&l.fullName!==l.fname?' '+l.fullName.split(' ').slice(1).join(' '):'')+'</div>'
+    +'<div class="modal-sub">'+l.town+(l.phone?' · '+l.phone:'')+'</div>'
+    +quotePanel
+    +'<div class="field"><label>Status</label><select id="e-status">'
+    +'<option value="active" '+(l.status==='active'?'selected':'')+'>Active</option>'
+    +'<option value="converted" '+(l.status==='converted'?'selected':'')+'>Converted</option>'
+    +'<option value="nurture" '+(l.status==='nurture'?'selected':'')+'>Nurture (next season)</option>'
+    +'<option value="lost" '+(l.status==='lost'?'selected':'')+'>Lost</option>'
+    +'</select></div>'
+    +'<div class="field"><label>Sequence</label><select id="e-seq">'
+    +'<option value="A" '+(l.seq==='A'?'selected':'')+'>A — No answer</option>'
+    +'<option value="B" '+(l.seq==='B'?'selected':'')+'>B — Think about it</option>'
+    +'<option value="C" '+(l.seq==='C'?'selected':'')+'>C — Talk to spouse</option>'
+    +'</select></div>'
+    +'<div class="field"><label>Next touch to send</label><select id="e-touch">'
+    +[0,1,2,3,4,5].map(i=>'<option value="'+i+'" '+(l.currentTouch===i?'selected':'')+'>Touch '+(i+1)+' — '+(l.seq?SUBJECTS[l.seq][i]:'(assign seq first)')+'</option>').join('')
+    +'</select></div>'
+    +'<div class="field"><label>Price sensitive?</label><select id="e-biweekly">'
+    +'<option value="no" '+(l.biweekly!=='yes'?'selected':'')+'>No</option>'
+    +'<option value="yes" '+(l.biweekly==='yes'?'selected':'')+'>Yes — include bi-weekly lines</option>'
+    +'</select></div>'
+    +'<div class="field"><label>Phone</label><input type="tel" id="e-phone" value="'+(l.phone||'')+'"></div>'
+    +'<div class="field"><label>Notes</label><textarea id="e-notes" rows="3">'+(l.notes||'')+'</textarea></div>'
+    +'<div style="display:flex;gap:8px;margin-top:6px">'
+    +'<button class="big-btn" style="flex:1" onclick="saveEdit(\''+id+'\')">Save</button>'
+    +'<button class="btn-danger" onclick="deleteLead(\''+id+'\')">Delete</button>'
+    +'</div>';
+  document.getElementById('modal-edit').classList.add('open');
+}
+
+function saveEdit(id){
+  const l=leads.find(x=>x.id===id);if(!l)return;
+  l.status=document.getElementById('e-status').value;
+  l.seq=document.getElementById('e-seq').value;
+  l.currentTouch=parseInt(document.getElementById('e-touch').value);
+  l.biweekly=document.getElementById('e-biweekly').value;
+  l.phone=document.getElementById('e-phone').value.trim();
+  l.notes=document.getElementById('e-notes').value.trim();
+  saveLeads();closeModal('modal-edit');renderPipeline();if(activeTab==='leads')renderAll();
+}
+
+function deleteLead(id){
+  if(!confirm('Remove this lead?'))return;
+  leads=leads.filter(x=>x.id!==id);
+  saveLeads();closeModal('modal-edit');renderPipeline();if(activeTab==='leads')renderAll();
+}
+
+// ══════════════════════════════════════════
+// COPY HELPERS
+// ══════════════════════════════════════════
+function copyMsg(id,btn){
+  const el=document.getElementById(id);
+  const text=el.textContent||'';
+  if(navigator.clipboard&&navigator.clipboard.writeText){
+    navigator.clipboard.writeText(text).then(()=>{btn.textContent='Copied!';btn.classList.add('copied');setTimeout(()=>{btn.textContent='Copy';btn.classList.remove('copied');},2000);}).catch(()=>fbCopy(text,btn));
+  }else{fbCopy(text,btn);}
+}
+function fbCopy(text,btn){
+  const ta=document.createElement('textarea');ta.value=text;ta.style.position='fixed';ta.style.opacity='0';
+  document.body.appendChild(ta);ta.focus();ta.select();
+  try{document.execCommand('copy');btn.textContent='Copied!';btn.classList.add('copied');setTimeout(()=>{btn.textContent='Copy';btn.classList.remove('copied');},2000);}
+  catch(e){btn.textContent='Long-press to copy';}
+  document.body.removeChild(ta);
+}
+function copyCRM(btn){
+  const rows=[['c-name','Name'],['c-phone','Phone'],['c-email','Email'],['c-contact','Contact Pref'],['c-addr','Address'],['c-zip','Zip'],['c-town','Town'],['c-dogs','Dogs'],['c-yard','Yard'],['c-bu','Last Cleaned'],['c-ot','One-Time'],['c-in','Initial'],['c-mo','Monthly (Weekly)'],['c-bw','Monthly (Bi-Weekly)'],['c-src','Source']];
+  const t=rows.map(([id,label])=>label+': '+document.getElementById(id).textContent).join('\n');
+  if(navigator.clipboard&&navigator.clipboard.writeText){
+    navigator.clipboard.writeText(t).then(()=>{btn.textContent='Copied!';setTimeout(()=>{btn.textContent='Copy all CRM fields';},2000);}).catch(()=>fbCopy(t,btn));
+  }else{fbCopy(t,btn);}
+}
+
+// ══════════════════════════════════════════
+// MODAL HELPERS
+// ══════════════════════════════════════════
+function closeModal(id){document.getElementById(id).classList.remove('open');}
+function handleOverlay(e,id){if(e.target===document.getElementById(id))closeModal(id);}
+
+// ══════════════════════════════════════════
+// GOOGLE SHEETS SYNC
+// ══════════════════════════════════════════
+const SCRIPT_URL='https://script.google.com/macros/s/AKfycbwmRKdGJVv1gcGie1Ta7zCY1c2yvwdOBAQR7L8SHCAoysqkbcqt1hPMcgQNGZ4IoyWiSg/exec';
+
+// Column indices in the sheet (1-based)
+// A=1 First Name, B=2 Last Name, C=3 Email, D=4 Cell Phone
+// E=5 Address, F=6 City, G=7 State, H=8 Zip
+// I=9 Source Referral, J=10 Referral Detail, K=11 SMS Consent
+// L=12 Created At, M=13 Lead Status, N=14 Lead Date
+// O=15 Last Contact, P=16 Status, Q=17 Route Day, R=18 Cluster
+// S=19 Notes (existing), T=20 Latitude, U=21 Longitude
+// V=22 Seq (tool), W=23 Biweekly (tool), X=24 CurrentTouch (tool)
+// Y=25 Notes (tool — merged with S), Z=26 ToolID (tool)
+const COL={
+  firstName:1,lastName:2,email:3,phone:4,address:5,city:6,state:7,zip:8,
+  source:9,referralDetail:10,smsconsent:11,createdAt:12,
+  leadStatus:13,leadDate:14,lastContact:15,status:16,
+  sheetNotes:19,
+  seq:22,biweekly:23,currentTouch:24,notes:25,toolId:26
+};
+
+async function sheetFetch(params){
+  const url=SCRIPT_URL+'?'+Object.entries(params).map(([k,v])=>k+'='+encodeURIComponent(v)).join('&');
+  try{
+    const r=await fetch(url);
+    return await r.json();
+  }catch(e){console.error('Sheet error',e);return null;}
+}
+
+async function syncFromSheet(){
+  showSyncStatus('Syncing with Google Sheet...','loading');
+  // Clear cached leads so we always get a clean sheet sync
+  leads=leads.filter(l=>!l._row); // keep only manually added leads with no sheet row
+  const res=await sheetFetch({action:'read'});
+  if(!res||res.status!=='ok'){showSyncStatus('Sync failed — using local data','error');return;}
+
+  const rows=res.rows;
+  // Keep only manually-added leads (no _row) that aren't in the sheet
+  const byToolId={};
+  const byPhone={};
+  leads.forEach(l=>{
+    if(l.toolId)byToolId[l.toolId]=l;
+    if(l.phone)byPhone[l.phone.replace(/\D/g,'')]=l;
+  });
+
+  const merged=[];
+  rows.forEach(row=>{
+    const phone=String(row['Cell Phone']||'').replace(/\D/g,'');
+    const toolId=String(row['ToolID']||'');
+    const firstName=String(row['First Name']||'').trim();
+    const lastName=String(row['Last Name']||'').trim();
+    const city=String(row['City']||'').trim();
+    const zip=String(row['Zip Code']||'').trim();
+    const source=String(row['Source Referral']||'').trim();
+    const email=String(row['Email']||'').trim();
+    const address=String(row['Address']||'').trim();
+    const sheetStatus=String(row['Lead Status']||'Lead').trim();
+    const sheetNotes=String(row['Notes']||'').trim();
+    const rowNum=row._row;
+
+    if(!firstName&&!phone)return; // skip empty rows
+    const leadStatus=String(row['Lead Status']||'').trim();
+    // Exclude converted, lost, do not service
+    const excludedStatuses=['Converted','Lost','Do Not Service'];
+    if(excludedStatuses.includes(leadStatus))return;
+
+    // Find existing local lead
+    let existing=toolId?byToolId[toolId]:null;
+    if(!existing&&phone)existing=byPhone[phone];
+
+    const town=ZT[zip]||city||'';
+
+    if(existing){
+      // Update sheet-owned fields, preserve tool-owned fields
+      existing.fname=firstName;
+      existing.fullName=(firstName+' '+lastName).trim();
+      existing.phone=phone?'+'+phone.replace(/^\+/,''):existing.phone;
+      existing.email=email||existing.email;
+      existing.address=address||existing.address;
+      existing.town=town||existing.town;
+      existing.zip=zip||existing.zip;
+      existing.source=source||existing.source;
+      existing._row=rowNum;
+      // sync status from sheet if not yet assigned a seq in tool
+      if(!existing.seq&&sheetStatus==='Converted'){existing.status='converted';}
+      merged.push(existing);
+    } else {
+      // New lead from sheet — add to tracker as unassigned
+      const id='sheet_'+rowNum+'_'+Date.now();
+      const lead={
+        id,toolId:id,
+        fname:firstName,
+        fullName:(firstName+' '+lastName).trim(),
+        phone:phone?phone:String(row['Cell Phone']||''),
+        email,address,
+        town,zip,
+        source,
+        seq:String(row['Seq']||''),
+        biweekly:String(row['Biweekly']||'no'),
+        notes:String(row['Notes']||sheetNotes||''),
+        startDate:today(),
+        currentTouch:parseInt(row['CurrentTouch']||'0')||0,
+        status: sheetStatus==='Converted'?'converted':
+                sheetStatus==='Lost'?'lost':
+                sheetStatus==='Nurture'?'nurture':'active',
+        log:[{date:today(),note:'Imported from Google Sheet'}],
+        _row:rowNum,
+        _new:true
+      };
+      merged.push(lead);
+    }
+  });
+
+  // Also keep any local-only leads not in sheet
+  leads.forEach(l=>{
+    if(!merged.find(m=>m.id===l.id))merged.push(l);
+  });
+
+  // Sort: newest sheet rows first (highest _row number = most recently added)
+  merged.sort((a,b)=>{
+    const ar=a._row||0,br=b._row||0;
+    return br-ar;
+  });
+  leads=merged;
+  saveLeads();
+  showSyncStatus('Synced — '+rows.length+' leads loaded','ok');
+  renderPipeline();
+  if(activeTab==='leads')renderAll();
+}
+
+async function writeToSheet(lead,field,value){
+  if(!lead._row)return; // no sheet row yet
+  const col=COL[field];
+  if(!col)return;
+  await sheetFetch({action:'update',row:lead._row,col,value:String(value)});
+}
+
+async function writeToolFieldsToSheet(lead){
+  if(!lead._row)return;
+  // Write all tool-managed fields back to sheet
+  const writes=[
+    ['seq',lead.seq||''],
+    ['biweekly',lead.biweekly||'no'],
+    ['currentTouch',String(lead.currentTouch||0)],
+    ['notes',lead.notes||''],
+    ['toolId',lead.id||''],
+    ['lastContact',today()],
+    ['leadStatus', lead.status==='converted'?'Converted':
+                   lead.status==='lost'?'Lost':
+                   lead.status==='nurture'?'Nurture':'Lead']
+  ];
+  for(const [field,value] of writes){
+    await writeToSheet(lead,field,value);
+  }
+}
+
+function showSyncStatus(msg,type){
+  let el=document.getElementById('sync-status');
+  if(!el){
+    el=document.createElement('div');
+    el.id='sync-status';
+    el.style.cssText='position:fixed;top:48px;left:50%;transform:translateX(-50%);z-index:200;font-size:12px;font-weight:600;padding:6px 16px;border-radius:20px;max-width:320px;text-align:center;transition:opacity 0.3s';
+    document.body.appendChild(el);
+  }
+  el.style.opacity='1';
+  if(type==='loading'){el.style.background='#faeeda';el.style.color='#854f0b';}
+  else if(type==='ok'){el.style.background='#eaf3de';el.style.color='#3b6d11';}
+  else{el.style.background='#faece7';el.style.color='#993c1d';}
+  el.textContent=msg;
+  if(type!=='loading')setTimeout(()=>{el.style.opacity='0';},3000);
+}
+
+// ── Override saveLeads to also sync tool fields back to sheet ──
+const _origSaveLeads=saveLeads;
+
+async function saveAndSync(changedLead){
+  saveLeads();
+  if(changedLead&&changedLead._row){
+    await writeToolFieldsToSheet(changedLead);
+  }
+}
+
+// ── Override saveLeadToTracker to also write to sheet ──
+const _origSaveLeadToTracker=saveLeadToTracker;
+saveLeadToTracker=async function(){
+  if(!selectedSeq){document.getElementById('save-seq-msg').textContent='Pick a sequence first.';return;}
+  const q=currentQuote;
+  if(!q.fname&&!q.fullName){document.getElementById('save-seq-msg').textContent='Go back and fill in lead info first.';return;}
+
+  const phone=q.phone?q.phone.replace(/\D/g,''):'';
+  const existing=leads.findIndex(l=>l.phone&&l.phone.replace(/\D/g,'')===phone&&phone);
+  const isExisting=existing>=0;
+  const id=isExisting?leads[existing].id:Date.now().toString();
+
+  const lead={
+    id,toolId:id,
+    fname:q.fname||q.fullName.split(' ')[0]||'',
+    fullName:q.fullName||q.fname,
+    town:q.town||'',
+    phone:q.phone||'',
+    email:q.email||'',
+    dogs:q.dogs||'',
+    yard:q.yard||'',
+    zip:q.zip||'',
+    source:q.source||'',
+    buildup:q.buildup||'',contact:q.contact||'',
+    ot:q.ot||'',ini:q.ini||'',mo:q.mo||'',bw:q.bw||'',
+    seq:selectedSeq,
+    biweekly:selectedPrice,
+    notes:'',
+    startDate:today(),
+    currentTouch:0,
+    status:'active',
+    log:[{date:today(),note:'Lead added from quote tool. Seq '+selectedSeq+'.'}],
+    _row:isExisting?leads[existing]._row:null
+  };
+
+  if(isExisting){leads[existing]=lead;}else{leads.unshift(lead);}
+  saveLeads();
+
+  // If we have a sheet row, write back
+  if(lead._row){
+    showSyncStatus('Saving to sheet...','loading');
+    await writeToolFieldsToSheet(lead);
+    showSyncStatus('Saved to sheet','ok');
+  }
+
+  document.getElementById('save-seq-msg').textContent='Added to Sequence '+selectedSeq+' — visible in Today queue';
+  document.getElementById('save-to-tracker-btn').textContent='Added ✓';
+  setTimeout(()=>{document.getElementById('save-to-tracker-btn').textContent='Add to follow-up tracker →';},3000);
+};
+
+// ── Override markSent to sync ──
+const _origMarkSent=markSent;
+markSent=async function(id,idx){
+  const l=leads.find(x=>x.id===id);if(!l)return;
+  l.log=l.log||[];
+  l.log.push({date:today(),note:'Touch '+(idx+1)+' sent'});
+  l.currentTouch=Math.max(l.currentTouch,idx+1);
+  saveLeads();
+  renderPipeline();if(activeTab==='leads')renderAll();
+  if(l._row){await writeToSheet(l,'currentTouch',l.currentTouch);await writeToSheet(l,'lastContact',today());}
+};
+
+// ── Override saveEdit to sync ──
+const _origSaveEdit=saveEdit;
+saveEdit=async function(id){
+  const l=leads.find(x=>x.id===id);if(!l)return;
+  l.status=document.getElementById('e-status').value;
+  l.seq=document.getElementById('e-seq').value;
+  l.currentTouch=parseInt(document.getElementById('e-touch').value);
+  l.biweekly=document.getElementById('e-biweekly').value;
+  l.phone=document.getElementById('e-phone').value.trim();
+  l.notes=document.getElementById('e-notes').value.trim();
+  saveLeads();closeModal('modal-edit');renderPipeline();if(activeTab==='leads')renderAll();
+  if(l._row){
+    showSyncStatus('Saving to sheet...','loading');
+    await writeToolFieldsToSheet(l);
+    showSyncStatus('Saved','ok');
+  }
+};
+
+// Sync button is hardcoded in HTML
+
+// ══════════════════════════════════════════
+// INIT
+// ══════════════════════════════════════════
+loadLeads();
+syncFromSheet();
+switchTab('quote');
+</script>
+</body>
+</html>
